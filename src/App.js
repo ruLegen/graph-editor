@@ -1,6 +1,7 @@
 import React,{Component,Fragment} from 'react';
 
 import { Graph,Link } from "react-d3-graph";
+import {selectAll,event as d3Event} from "d3-selection"
 import { save } from "save-file";
 import Button from '@material-ui/core/Button';
 import {Grid,Paper} from '@material-ui/core'
@@ -9,7 +10,7 @@ import MenuItem from '@material-ui/core/MenuItem';
 
 import KeyboardEventHandler from 'react-keyboard-event-handler';
 
-import {makeid,NodeItem,LinkItem} from './js/utils'
+import {makeid,NodeItem,LinkItem,getCanvasOffset} from './js/utils'
 import EditMenu from './components/EditMenu'
 
 // graph payload (with minimalist structure)
@@ -65,6 +66,7 @@ class App extends Component {
       isOpen:false,
       selectedNode:0,
       mousePositionClick:{top:0,left:0},
+      menuPosition:{top:0,left:0},
       data:{
       nodes: [new NodeItem("test")],
       links: [] },
@@ -78,12 +80,14 @@ class App extends Component {
     this.onClickGraph = (event)=> {
       event.persist();
       event.preventDefault();
-      console.log(event)
+
+      var rect = event.target.getBoundingClientRect();
+      console.log(rect)
       if(event.type== "contextmenu")
       {
-        let x = event.clientX;
-        let y = event.clientY;
-        this.setState({isOpen:true,mousePositionClick:{top:y,left:x}})
+        let x = event.clientX - rect.x;
+        let y = event.clientY - rect.y;
+        this.setState({isOpen:true,mousePositionClick:{top:y,left:x},menuPosition:{top:event.clientY,left:event.clientX}})
       }
     };
     //delete or add new node
@@ -127,8 +131,10 @@ class App extends Component {
     //when adding new node on graph
     this.onNodeAdd=()=>{
       let newNode = new NodeItem(makeid(6))
-      newNode.x=this.state.mousePositionClick.left
-      newNode.y=this.state.mousePositionClick.top
+      let offset = getCanvasOffset("#graph-id-graph-container-zoomable")
+      
+      newNode.x=(this.state.mousePositionClick.left-offset.x)/offset.k
+      newNode.y=(this.state.mousePositionClick.top-offset.y)/offset.k
       let newState = {data:{nodes:[...this.state.data.nodes, newNode],links:[...this.state.data.links]}} 
       console.log({...this.state,...newState})
       this.setState({...this.state,...newState},()=>{
@@ -221,6 +227,26 @@ class App extends Component {
       this.setState({...this.state,...newState})
 
     }
+    this.onLinkInfoChanged=(link,event,value)=>{
+        let newLink = link
+        newLink.events = value
+        let index = this.state.data.links.findIndex((element)=>{
+            return (element.source == link.source && element.target == link.target)
+        })
+        if(index == -1)
+        {
+          console.log("Link doesnt find /// >>??????")
+          return
+        }
+        this.setState({data:{
+          ...this.state.data,
+          links:[
+            ...this.state.data.links.slice(0, index),
+            newLink,
+            ...this.state.data.links.slice(index + 1)
+          ]
+        }})
+    }
     this.handleOpenPlan = (event)=>{
       let file = event.target.files[0]
       let fileReader = new FileReader();
@@ -244,7 +270,7 @@ class App extends Component {
       keepMounted
       open={this.state.isOpen}
       anchorReference="anchorPosition"
-      anchorPosition={{top:this.state.mousePositionClick.top,left:this.state.mousePositionClick.left}}
+      anchorPosition={{top:this.state.menuPosition.top,left:this.state.menuPosition.left}}
       onClose={this.handleClose}>
       <MenuItem onClick={this.onNodeAdd}>Add Node</MenuItem>
     </Menu>
@@ -275,7 +301,13 @@ class App extends Component {
         />
       </Grid>
       <Grid item xs={3} >
-          <EditMenu onChange={this.onNodeInfoChanged} node={this.state.data.nodes[this.state.selectedNode]}/>
+          <EditMenu onChange={this.onNodeInfoChanged}
+                    onLinkChange={this.onLinkInfoChanged}
+                    node={this.state.data.nodes[this.state.selectedNode]}
+                    links={this.state.data.links.filter((link)=>{
+                        return link.source == this.state.data.nodes[this.state.selectedNode].id
+                    })}
+          />
           <Grid container xs={7} direction="column" >
             <input accept="application/json"
               style={{display:"none"}}

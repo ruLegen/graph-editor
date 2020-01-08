@@ -1,3 +1,5 @@
+import {select} from "d3-selection"
+import {zoomTransform} from "d3-zoom"
 function makeid(length) {
     var result           = '';
     var characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -18,10 +20,13 @@ function makeid(length) {
       events:[]
    }
  }
-
- function LinkItem(source,target,weight)
+function getCanvasOffset(id)
+{
+  return zoomTransform(select(id).node())
+}
+ function LinkItem(source,target,weight,events)
  {
-   return {source:source,target:target,weight:weight}
+   return {source:source,target:target,weight:weight,events:events|| ""}
  }
  
- export {makeid,NodeItem,LinkItem}
+ export {makeid,NodeItem,LinkItem,getCanvasOffset}

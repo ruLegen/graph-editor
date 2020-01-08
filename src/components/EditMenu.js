@@ -1,16 +1,28 @@
 import React,{Component} from "react";
-import {TextField,Input, Typography} from "@material-ui/core";
+import {TextField,Select,MenuItem, InputLabel,Typography} from "@material-ui/core";
 class EditMenu extends Component {
     constructor(props) {
-        super(props);
-        this.state = {  }
+        super(props)
+        this.state = {
+            selectedLink:{}
+        }
+
+        this.linkChanged = (event)=>{
+            let selectedId = event.target.value
+            let selectedLink = this.props.links.filter((link)=>{return link.target == selectedId})[0]
+            this.setState({selectedLink:selectedLink})
+        }
     }
     // ??
     // 
-    
+    componentDidUpdate(prevProps, prevState, snapshot)
+    {
+        if(this.props.node.id != prevProps.node.id)
+            this.setState({selectedLink:{}})
+    }
 
     render() { 
-        const {node,onChange,...other} = this.props
+        const {node,links,onChange,onLinkChange,...other} = this.props
         if(node != null)
         {
             return (
@@ -48,13 +60,35 @@ class EditMenu extends Component {
                         variant="filled"
                         onChange={(event)=>{onChange(node.id,"y",event.target.value)}}
                     />
-                     <TextField
+                    <TextField
                         value={node.events.toString()}
                         label="Events"
                         defaultValue=""
                         margin="normal"
                         variant="filled"
                         onChange={(event)=>{onChange(node.id,"events",event.target.value)}}
+                    />
+                    <div>
+                           <InputLabel id="label">Link To</InputLabel>
+                            <Select onChange={this.linkChanged} labelId="label" id="select" value={this.state.selectedLink.target}>
+                            {
+                                links.map((link,index)=>{
+                                    return (
+                                    <MenuItem value={link.target} key={index}>
+                                            {link.target}
+                                    </MenuItem>)
+                                })
+                            }
+                        </Select>
+                    </div>
+                    <TextField
+                        disabled={!this.state.selectedLink.target}
+                        value={this.state.selectedLink.events || ""}
+                        label="Link Events"
+                        defaultValue=""
+                        margin="normal"
+                        variant="filled"
+                        onChange={(event)=>{onLinkChange(this.state.selectedLink,"link-events",event.target.value)}}
                     />
                 </div>
             )
