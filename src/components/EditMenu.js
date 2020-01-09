@@ -17,8 +17,14 @@ class EditMenu extends Component {
     // 
     componentDidUpdate(prevProps, prevState, snapshot)
     {
-        if(this.props.node.id != prevProps.node.id)
+        try{
+            if(this.props.node.id != prevProps.node.id)
+                 this.setState({selectedLink:{}})
+        }
+        catch(e)
+        {
             this.setState({selectedLink:{}})
+        }
     }
 
     render() { 

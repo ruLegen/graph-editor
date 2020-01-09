@@ -20,13 +20,20 @@ function makeid(length) {
       events:[]
    }
  }
+ function FloorItem(nodes,links)
+ {
+    return {
+      nodes: nodes,
+      links: links 
+    }
+ }
 function getCanvasOffset(id)
 {
   return zoomTransform(select(id).node())
 }
  function LinkItem(source,target,weight,events)
  {
-   return {source:source,target:target,weight:weight,events:events|| ""}
+   return {source:source,target:target,weight:weight,events:Array.isArray(events)?events:[]}
  }
  
- export {makeid,NodeItem,LinkItem,getCanvasOffset}
+ export {makeid,NodeItem,LinkItem,getCanvasOffset,FloorItem}

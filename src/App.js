@@ -1,17 +1,18 @@
 import React,{Component,Fragment} from 'react';
 
-import { Graph,Link } from "react-d3-graph";
-import {selectAll,event as d3Event} from "d3-selection"
+import { Graph, } from "react-d3-graph";
 import { save } from "save-file";
 import Button from '@material-ui/core/Button';
-import {Grid,Paper} from '@material-ui/core'
+import {Grid,AppBar, Toolbar, Typography, Fab,} from '@material-ui/core'
 import Menu from '@material-ui/core/Menu';
 import MenuItem from '@material-ui/core/MenuItem';
-
 import KeyboardEventHandler from 'react-keyboard-event-handler';
+import {makeid,NodeItem,LinkItem,getCanvasOffset,FloorItem} from './js/utils'
 
-import {makeid,NodeItem,LinkItem,getCanvasOffset} from './js/utils'
 import EditMenu from './components/EditMenu'
+
+import ArrowUpwardIcon from '@material-ui/icons/ArrowUpward';
+import ArrowDownwardIcon from '@material-ui/icons/ArrowDownward';
 
 // graph payload (with minimalist structure)
 
@@ -67,10 +68,11 @@ class App extends Component {
       selectedNode:0,
       mousePositionClick:{top:0,left:0},
       menuPosition:{top:0,left:0},
-      data:{
-      nodes: [new NodeItem("test")],
-      links: [] },
-      isShiftPressed:false,  
+      currentFloor:0,
+      data:[new FloorItem([new NodeItem("test")],[])],
+      isShiftPressed:false,
+      isFloorSwitched:false,
+
     }
     //close context menu
     this.handleClose =()=>{
@@ -97,31 +99,33 @@ class App extends Component {
       if(this.state.isShiftPressed)
       {
           //nodes array must be contain atleast 1 item *library requirement*
-          if(this.state.data.nodes.length == 1)
+          if(this.state.data[this.state.currentFloor].nodes.length == 1)
             return
-          let selectedNodeindex = this.state.data.nodes.findIndex((node,index)=>{
+          let selectedNodeindex = this.state.data[this.state.currentFloor].nodes.findIndex((node,index)=>{
           if(node['id'] == id)
             return true
           })
-          let selectedNode = this.state.data.nodes[selectedNodeindex]
+          let selectedNode = this.state.data[this.state.currentFloor].nodes[selectedNodeindex]
           //select previuos node 
           let previuosNodeIndex = this.state.selectedNode 
           if(this.state.selectedNode == selectedNodeindex)  //if we delete selected node => make new selected node
-              previuosNodeIndex = (selectedNodeindex-1) % this.state.data.nodes.length-1;
+              previuosNodeIndex = (selectedNodeindex-1) % this.state.data[this.state.currentFloor].nodes.length-1;
 
-            let newNodeArray = this.state.data.nodes.filter((node, index) => index !== selectedNodeindex);
-          let newLinkArray = this.state.data.links.filter((link, index) => {
+          let newNodeArray = this.state.data[this.state.currentFloor].nodes.filter((node, index) => index !== selectedNodeindex);
+          let newLinkArray = this.state.data[this.state.currentFloor].links.filter((link, index) => {
             return (link.source !== selectedNode.id && link.target !== selectedNode.id)
           })
 
           console.log(newLinkArray,selectedNode.id)
-          let newState = {data:{nodes:newNodeArray,links:newLinkArray}} 
+          let newState = {data:[...this.state.data.slice(0,this.state.currentFloor),
+            new FloorItem(newNodeArray,newLinkArray),
+            ...this.state.data.slice(this.state.currentFloor+1),]} 
           this.setState({...this.state,...newState,selectedNode:previuosNodeIndex})
       }
       //else select node  
       else
       {
-          let index = this.state.data.nodes.findIndex((node,index)=>{
+          let index = this.state.data[this.state.currentFloor].nodes.findIndex((node,index)=>{
           if(node['id'] == id)
             return true
           })
@@ -135,7 +139,13 @@ class App extends Component {
       
       newNode.x=(this.state.mousePositionClick.left-offset.x)/offset.k
       newNode.y=(this.state.mousePositionClick.top-offset.y)/offset.k
-      let newState = {data:{nodes:[...this.state.data.nodes, newNode],links:[...this.state.data.links]}} 
+
+      // let newState = {data:{nodes:[...this.state.data.nodes, newNode],links:[...this.state.data.links]}} 
+      let newState = {data:[...this.state.data.slice(0,this.state.currentFloor),
+        new FloorItem([...this.state.data[this.state.currentFloor].nodes,newNode],this.state.data[this.state.currentFloor].links),
+        ...this.state.data.slice(this.state.currentFloor+1),]} 
+
+      
       console.log({...this.state,...newState})
       this.setState({...this.state,...newState},()=>{
         this.handleClose()
@@ -143,38 +153,47 @@ class App extends Component {
     }
     //updating positions
     this.onNodePositionChange=(nodeID,newX,newY)=>{
-      let index = this.state.data.nodes.findIndex((node,index)=>{
+      let index = this.state.data[this.state.currentFloor].nodes.findIndex((node,index)=>{
         if(node['id'] == nodeID)
           return true
         })
-      let newNode = {...this.state.data.nodes[index]}
+      let newNode = {...this.state.data[this.state.currentFloor].nodes[index]}
       newNode.x = newX;
       newNode.y = newY;
         
-      let newNodes = [...this.state.data.nodes.slice(0, index),newNode,...this.state.data.nodes.slice(index + 1)]
-      let newState = {data:{nodes:[...newNodes],links:[...this.state.data.links]}} 
+      let newNodes = [...this.state.data[this.state.currentFloor].nodes.slice(0, index),newNode,...this.state.data[this.state.currentFloor].nodes.slice(index + 1)]
+      let newState = {data:[...this.state.data.slice(0,this.state.currentFloor),
+                      new FloorItem(newNodes,this.state.data[this.state.currentFloor].links),
+                      ...this.state.data.slice(this.state.currentFloor+1),]} 
+      
       this.setState({...this.state,...newState})
     }
     //delete link
     this.onClickLink = (source, target)=>{
-      let linkIndex = this.state.data.links.findIndex((link,index)=>{
+      let linkIndex = this.state.data[this.state.currentFloor].links.findIndex((link,index)=>{
         if(link.source == source && link.target == target)
           return true
         })
 
-      let newLinkArray = this.state.data.links.filter((item, index) => index !== linkIndex);
-      let newState = {data:{nodes:[...this.state.data.nodes],links:newLinkArray}} 
+      let newLinkArray = this.state.data[this.state.currentFloor].links.filter((item, index) => index !== linkIndex);
+      // let newState = {data:{nodes:[...this.state.data.nodes],links:newLinkArray}} 
+     
+      let newState = {data:[...this.state.data.slice(0,this.state.currentFloor),
+        new FloorItem([...this.state.data[this.state.currentFloor].nodes],newLinkArray),
+        ...this.state.data.slice(this.state.currentFloor+1),]} 
+
+
       console.log(this)
       this.setState({...this.state,...newState})
     }
     //add new link
     this.onRightClickNode = function(event, nodeId) {
       event.preventDefault()
-        let currentNode = this.state.data.nodes[this.state.selectedNode];
-        let currentNodeId = this.state.data.nodes[this.state.selectedNode].id;
-        let targetNode = getNodeById(nodeId,this.state.data.nodes);
+        let currentNode = this.state.data[this.state.currentFloor].nodes[this.state.selectedNode];
+        let currentNodeId = this.state.data[this.state.currentFloor].nodes[this.state.selectedNode].id;
+        let targetNode = getNodeById(nodeId,this.state.data[this.state.currentFloor].nodes);
         
-        let existingLinkIndex = this.state.data.links.findIndex((link,index)=>{
+        let existingLinkIndex = this.state.data[this.state.currentFloor].links.findIndex((link,index)=>{
           if(link.source == currentNodeId && link.target == nodeId && (currentNodeId != nodeId))
           return true
         })
@@ -184,16 +203,18 @@ class App extends Component {
           //just calc vector magnitude
         let weightLink =  Math.sqrt(Math.pow(targetNode.x - currentNode.x,2)+ Math.pow(targetNode.y - currentNode.y,2))
         let link  = new LinkItem(currentNodeId,nodeId,weightLink)
-        //#uncomment 2 lines after to add 2 links at 1 time
-        //#but ont forget change existingLinkIndex cause it does not check this scenario
-        //let link  = [new LinkItem(currentNodeId,nodeId,weightLink),new LinkItem(nodeId,currentNodeId,weightLink)]
-        //let newState = {data:{nodes:[...this.state.data.nodes],links:[...this.state.data.links,...link]}} 
-        
-        let newState = {data:{nodes:[...this.state.data.nodes],links:[...this.state.data.links,link]}} 
+        //if u want add 2 links at once, you can do it here
+        // let newState = {data:{nodes:[...this.state.data.nodes],links:[...this.state.data.links,link]}} 
+
+        let newState = {data:[...this.state.data.slice(0,this.state.currentFloor),
+          new FloorItem([...this.state.data[this.state.currentFloor].nodes],[...this.state.data[this.state.currentFloor].links,link]),
+          ...this.state.data.slice(this.state.currentFloor+1),]} 
+    
         this.setState({...this.state,...newState})
     }
     //track
     this.handleKeys=(keys,e)=>{
+      console.log(keys)
       switch (keys) {
         case "shift":
           if(e.type == "keyup")
@@ -201,17 +222,23 @@ class App extends Component {
           else
             this.setState({isShiftPressed:true})
           break;
+        case "up": 
+                if(e.type == "keyup")
+                  this.onFloorUp();break;
+        case "down": 
+                if(e.type == "keyup")
+                  this.onFloorDown();break;
         default:
           break;
       }
     }
     //in EditMenu changed NodeInfo
     this.onNodeInfoChanged=(nodeID,nodeField,value)=>{
-      let index = this.state.data.nodes.findIndex((node,index)=>{
+      let index = this.state.data[this.state.currentFloor].nodes.findIndex((node,index)=>{
         if(node['id'] == nodeID)
           return true
         })
-      let newNode = {...this.state.data.nodes[index]}
+      let newNode = {...this.state.data[this.state.currentFloor].nodes[index]}
       if(nodeField =="x" || nodeField =="y")
         value = parseInt(value)
 
@@ -220,17 +247,24 @@ class App extends Component {
         value = value.split(',');
       
       newNode[nodeField] = value;
-        
-      let newNodes = [...this.state.data.nodes.slice(0, index),newNode,...this.state.data.nodes.slice(index + 1)]
-      let newState = {data:{nodes:[...newNodes],links:[...this.state.data.links]}} 
+      
+      //if you see this constructions, dont confuse. 
+      //It's Immutable pattern from 
+      //https://blog.cloudboost.io/react-redux-immutable-update-cheat-sheet-296bfdd1f19
+      let newNodes = [...this.state.data[this.state.currentFloor].nodes.slice(0, index),newNode,...this.state.data[this.state.currentFloor].nodes.slice(index + 1)]
+      // let newState = {data:{nodes:[...newNodes],links:[...this.state.data.links]}} 
+      let newState = {data:[...this.state.data.slice(0,this.state.currentFloor),
+        new FloorItem(newNodes,this.state.data[this.state.currentFloor].links),
+        ...this.state.data.slice(this.state.currentFloor+1),]} 
+  
       console.log(newState)
       this.setState({...this.state,...newState})
 
     }
     this.onLinkInfoChanged=(link,event,value)=>{
         let newLink = link
-        newLink.events = value
-        let index = this.state.data.links.findIndex((element)=>{
+        newLink.events = value.split(',')
+        let index = this.state.data[this.state.currentFloor].links.findIndex((element)=>{
             return (element.source == link.source && element.target == link.target)
         })
         if(index == -1)
@@ -238,14 +272,17 @@ class App extends Component {
           console.log("Link doesnt find /// >>??????")
           return
         }
-        this.setState({data:{
-          ...this.state.data,
-          links:[
-            ...this.state.data.links.slice(0, index),
+
+
+        let newState = {data:[...this.state.data.slice(0,this.state.currentFloor),
+          new FloorItem(this.state.data[this.state.currentFloor].nodes,[
+            ...this.state.data[this.state.currentFloor].links.slice(0, index),
             newLink,
-            ...this.state.data.links.slice(index + 1)
-          ]
-        }})
+            ...this.state.data[this.state.currentFloor].links.slice(index + 1)
+          ]),
+          ...this.state.data.slice(this.state.currentFloor+1),]} 
+
+        this.setState(newState)
     }
     this.handleOpenPlan = (event)=>{
       let file = event.target.files[0]
@@ -259,6 +296,36 @@ class App extends Component {
           } catch (error) {console.log(error)}
       }
       fileReader.readAsText(file)
+    }
+
+    this.onFloorNew = ()=>{
+      let connectionNode = this.state.data[this.state.currentFloor].nodes[this.state.selectedNode]
+      let newFloor = new FloorItem([{...connectionNode}],[])
+      let newState = {data:[...this.state.data,newFloor],currentFloor:this.state.currentFloor+1,selectedNode:0}
+      this.setState(newState)
+    }
+    this.onFloorDelete = ()=>{
+      if(this.state.data.length <=1)
+        return
+      let newFloorIndex = this.state.currentFloor-1;
+      if(newFloorIndex < 0) newFloorIndex = 0;
+      let newFloors = this.state.data.filter((item, index) => index !== this.state.currentFloor);
+      let newState = {data: newFloors,currentFloor:newFloorIndex}
+      this.setState(newState)
+    }
+    this.onFloorUp = ()=>{
+      if(this.state.data.length <= 1)
+        return
+      let newFloor = (this.state.currentFloor+1)%this.state.data.length
+      this.setState({currentFloor:newFloor,selectedNode:0},()=>{console.log(this.state)})
+    }
+    this.onFloorDown = ()=>{
+      if(this.state.data.length <= 1)
+        return
+      let newFloor = this.state.currentFloor-1
+      if(newFloor < 0)
+        newFloor = this.state.data.length-1
+      this.setState({currentFloor:newFloor,selectedNode:0},()=>{console.log(this.state)})
     }
   }
   render() { 
@@ -274,18 +341,30 @@ class App extends Component {
       onClose={this.handleClose}>
       <MenuItem onClick={this.onNodeAdd}>Add Node</MenuItem>
     </Menu>
-
-<Grid
-  container
-  direction="row"
-  justify="center"
-  alignItems="center"
->
+    <AppBar position="static">
+      <Toolbar>
+            <Button onClick={this.onFloorNew} color="inherit">New</Button>
+            <Button onClick={this.onFloorDelete} color="inherit">Delete</Button>
+            <Button onClick={this.onFloorUp} color="inherit"> <ArrowUpwardIcon />Up</Button>
+            <Button onClick={this.onFloorDown} color="inherit"> <ArrowDownwardIcon/>Down</Button>
+          <Grid container direction="row" justify="flex-end" alignItems="center">
+            <Typography variant="h6">
+              Floor {this.state.currentFloor}
+            </Typography>
+          </Grid>
+      </Toolbar>
+    </AppBar>
+    <Grid
+      container
+      direction="row"
+      justify="center"
+      alignItems="center"
+    >
       <Grid item xs={9}>
-          <Graph
+          {<Graph
             ref={this.graph}
             id="graph-id" // id is mandatory, if no id is defined rd3g will throw an error
-            data={this.state.data}
+            data={this.state.data[this.state.currentFloor]}
             config={myConfig}
             //this binded to Node class
             onRightClickNode={(event,nodeId)=>{event.persist();this.onRightClickNode(event,nodeId)}}
@@ -298,14 +377,14 @@ class App extends Component {
             onMouseOverLink={onMouseOverLink}
             onMouseOutLink={onMouseOutLink}
             onNodePositionChange={this.onNodePositionChange}
-        />
+        />}
       </Grid>
       <Grid item xs={3} >
           <EditMenu onChange={this.onNodeInfoChanged}
                     onLinkChange={this.onLinkInfoChanged}
-                    node={this.state.data.nodes[this.state.selectedNode]}
-                    links={this.state.data.links.filter((link)=>{
-                        return link.source == this.state.data.nodes[this.state.selectedNode].id
+                    node={this.state.data[this.state.currentFloor].nodes[this.state.selectedNode]}
+                    links={this.state.data[this.state.currentFloor].links.filter((link)=>{
+                        return link.source == this.state.data[this.state.currentFloor].nodes[this.state.selectedNode].id
                     })}
           />
           <Grid container xs={7} direction="column" >
