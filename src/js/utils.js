@@ -15,8 +15,8 @@ function makeid(length) {
    return {
       id:id,
       mac:"AA:BB:CC:DD:EE:FF",
-      x:10,
-      y:30,
+      x:0,
+      y:0,
       events:[]
    }
  }
@@ -31,6 +31,7 @@ function getCanvasOffset(id)
 {
   return zoomTransform(select(id).node())
 }
+
  function LinkItem(source,target,weight,events)
  {
    return {source:source,target:target,weight:weight,events:Array.isArray(events)?events:[]}

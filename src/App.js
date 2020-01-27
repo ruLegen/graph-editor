@@ -1,7 +1,8 @@
 import React,{Component,Fragment} from 'react';
-
+import "./App.css"
 import { Graph, } from "react-d3-graph";
 import { save } from "save-file";
+import {select} from "d3-selection"
 import Button from '@material-ui/core/Button';
 import {Grid,AppBar, Toolbar, Typography, Fab,} from '@material-ui/core'
 import Menu from '@material-ui/core/Menu';
@@ -13,6 +14,7 @@ import EditMenu from './components/EditMenu'
 
 import ArrowUpwardIcon from '@material-ui/icons/ArrowUpward';
 import ArrowDownwardIcon from '@material-ui/icons/ArrowDownward';
+import PlanDialog from './components/PlanDialog';
 
 // graph payload (with minimalist structure)
 
@@ -30,7 +32,7 @@ const myConfig = {
     link: {
         highlightColor: "lightblue",
         strokeWidth:4,
-        type:"CURVE_SMOOTH"
+       // type:"CURVE_SMOOTH"
     },
 };
 
@@ -70,6 +72,7 @@ class App extends Component {
       menuPosition:{top:0,left:0},
       currentFloor:0,
       data:[new FloorItem([new NodeItem("test")],[])],
+      plans:[""],
       isShiftPressed:false,
       isFloorSwitched:false,
 
@@ -193,26 +196,31 @@ class App extends Component {
         let currentNodeId = this.state.data[this.state.currentFloor].nodes[this.state.selectedNode].id;
         let targetNode = getNodeById(nodeId,this.state.data[this.state.currentFloor].nodes);
         
-        let existingLinkIndex = this.state.data[this.state.currentFloor].links.findIndex((link,index)=>{
-          if(link.source == currentNodeId && link.target == nodeId && (currentNodeId != nodeId))
-          return true
-        })
-        if(existingLinkIndex >= 0)
-          return  //this link already exist
+        // let existingLinkIndex = this.state.data[this.state.currentFloor].links.findIndex((link,index)=>{
+        //   if(link.source == currentNodeId && link.target == nodeId && (currentNodeId != nodeId))
+        //   return true
+        // })
+        // if(existingLinkIndex >= 0)
+        //   return  //this link already exist
 
           //just calc vector magnitude
         let weightLink =  Math.sqrt(Math.pow(targetNode.x - currentNode.x,2)+ Math.pow(targetNode.y - currentNode.y,2))
-        let link  = new LinkItem(currentNodeId,nodeId,weightLink)
-        //if u want add 2 links at once, you can do it here
-        // let newState = {data:{nodes:[...this.state.data.nodes],links:[...this.state.data.links,link]}} 
 
+        //check here for link existense
+        let link  = []
+        // new LinkItem(currentNodeId,nodeId,weightLink),new LinkItem(nodeId,currentNodeId,weightLink)
+        if(!isLinkExist(currentNodeId,nodeId,this.state.data[this.state.currentFloor].links))
+            link.push(new LinkItem(currentNodeId,nodeId,weightLink))
+        if(!isLinkExist(nodeId,currentNodeId,this.state.data[this.state.currentFloor].links))
+            link.push(new LinkItem(nodeId,currentNodeId,weightLink))
+        console.log(link)
         let newState = {data:[...this.state.data.slice(0,this.state.currentFloor),
-          new FloorItem([...this.state.data[this.state.currentFloor].nodes],[...this.state.data[this.state.currentFloor].links,link]),
+          new FloorItem([...this.state.data[this.state.currentFloor].nodes],[...this.state.data[this.state.currentFloor].links,...link]),
           ...this.state.data.slice(this.state.currentFloor+1),]} 
     
         this.setState({...this.state,...newState})
     }
-    //track
+    //track key events
     this.handleKeys=(keys,e)=>{
       console.log(keys)
       switch (keys) {
@@ -301,7 +309,7 @@ class App extends Component {
     this.onFloorNew = ()=>{
       let connectionNode = this.state.data[this.state.currentFloor].nodes[this.state.selectedNode]
       let newFloor = new FloorItem([{...connectionNode}],[])
-      let newState = {data:[...this.state.data,newFloor],currentFloor:this.state.currentFloor+1,selectedNode:0}
+      let newState = {data:[...this.state.data,newFloor],plans:[...this.state.plans,""],currentFloor:this.state.currentFloor+1,selectedNode:0}
       this.setState(newState)
     }
     this.onFloorDelete = ()=>{
@@ -310,7 +318,8 @@ class App extends Component {
       let newFloorIndex = this.state.currentFloor-1;
       if(newFloorIndex < 0) newFloorIndex = 0;
       let newFloors = this.state.data.filter((item, index) => index !== this.state.currentFloor);
-      let newState = {data: newFloors,currentFloor:newFloorIndex}
+      let newPlans = this.state.plans.filter((item, index) => index !== this.state.currentFloor);
+      let newState = {data: newFloors,plans:newPlans,currentFloor:newFloorIndex}
       this.setState(newState)
     }
     this.onFloorUp = ()=>{
@@ -327,7 +336,29 @@ class App extends Component {
         newFloor = this.state.data.length-1
       this.setState({currentFloor:newFloor,selectedNode:0},()=>{console.log(this.state)})
     }
+    this.onZoomed =(transform)=>{
+      console.log({...transform})
+      let svg = select('svg[name="svg-container-graph-id"]')
+      svg.style("background-position",`${transform.x}px ${transform.y}px`)
+      svg.style("background-size",`${transform.k*100}%`)
+    }
+    this.onPlanChanged=(url)=>{
+      console.log(url)
+      this.setState({plans:[
+        ...this.state.plans.slice(0, this.state.currentFloor),
+        url,
+        ...this.state.plans.slice(this.state.currentFloor + 1)
+        ]
+      })
+        
+    }
   }
+  componentDidMount()
+  {
+    // console.log(this.graph.current)
+    //  let svg = select('svg[name="svg-container-graph-id"]').style("background-image","url('http://www.mkumodels.com/wp-content/uploads/ap/appealing-mansions-with-indoor-pools-for-home-design-pictures-pool-house-plans-lovely-inner-courtyard-designs-florida-o.jpg')")
+  }
+
   render() { 
   return (
     <Fragment>
@@ -347,6 +378,8 @@ class App extends Component {
             <Button onClick={this.onFloorDelete} color="inherit">Delete</Button>
             <Button onClick={this.onFloorUp} color="inherit"> <ArrowUpwardIcon />Up</Button>
             <Button onClick={this.onFloorDown} color="inherit"> <ArrowDownwardIcon/>Down</Button>
+            <PlanDialog onApply={this.onPlanChanged}/>
+
           <Grid container direction="row" justify="flex-end" alignItems="center">
             <Typography variant="h6">
               Floor {this.state.currentFloor}
@@ -363,9 +396,11 @@ class App extends Component {
       <Grid item xs={9}>
           {<Graph
             ref={this.graph}
+            style={{left:'100px'}}
             id="graph-id" // id is mandatory, if no id is defined rd3g will throw an error
             data={this.state.data[this.state.currentFloor]}
             config={myConfig}
+            bgImage={`url('${this.state.plans[this.state.currentFloor]}')`}
             //this binded to Node class
             onRightClickNode={(event,nodeId)=>{event.persist();this.onRightClickNode(event,nodeId)}}
             onDoubleClickNode={this.onNodeClick}
@@ -376,6 +411,7 @@ class App extends Component {
             onMouseOutNode={onMouseOutNode}
             onMouseOverLink={onMouseOverLink}
             onMouseOutLink={onMouseOutLink}
+            onZoomed={this.onZoomed}
             onNodePositionChange={this.onNodePositionChange}
         />}
       </Grid>
@@ -399,38 +435,48 @@ class App extends Component {
               Open plan
             </Button>
             </label>
-          <Button style={{marginTop:"3%"}} variant="contained" color="primary" onClick={()=>{
+            <Button style={{marginTop:"3%"}} variant="contained" color="primary" onClick={()=>{
               save(JSON.stringify(this.state), 'plan.'+Date.now().toString()+".json")
             }}>Save plan</Button>
             <Button style={{marginTop:"3%"}} variant="contained" color="primary"
               onClick={()=>{
-                let allLinks=this.graph.current.state.links;
-                let nodes = Object.keys(allLinks);
-                let nodeArray = [];
+                let data = this.state.data.flat()
+                let allNodes =[]
+                let allLinks =[]
 
-                for(let node in allLinks)
-                {
-                  let edgeObject =allLinks[node]
-                  let edgeArray=[]
-                  for(let link in edgeObject)
-                  {
-                    let linkWeight = calcLinkWeight(node,link,this.state.data.nodes)
-                    
-                    edgeArray.push({nodeName:link,weight:linkWeight})  
-                  }
-                  nodeArray.push({
-                    node: getNodeById(node,this.state.data.nodes),
-                    edges:edgeArray
+                //it needs for delete duplicates
+                let tmpNodeIdArray = new Set()
+                //separate all nodes and links to different arrays 
+                data.forEach((element)=>{
+                    element.nodes.forEach((node)=>{
+                      //if set doesn't contain this node then add
+                      if(!tmpNodeIdArray.has(node.id))
+                        allNodes.push(node)
+                      tmpNodeIdArray.add(node.id)
+                    })
+                    element.links.forEach((link)=>{allLinks.push(link)})
+                })
+                let resultArray = []
+                allNodes.forEach((node)=>{
+                  //get all links where node is source
+                  let nodeLinks = allLinks.filter((link)=>{
+                    return link.source == node.id
                   })
-                }
-                save(JSON.stringify(nodeArray), 'graph.'+Date.now().toString()+".json")
-                console.log(nodeArray)
+                  let edges = []
+                  nodeLinks.forEach((link)=>{
+                    edges.push({nodeName:link.target,
+                                weight:link.weight,
+                                events:link.events})
+                  })
+                  resultArray.push({node:node,edges:edges})
+                })
+                save(JSON.stringify(resultArray), 'graph.'+Date.now().toString()+".json")
+                console.log(resultArray)
               }}
             >Export plan</Button>
           </Grid>
       </Grid>
-
-    </Grid>
+     </Grid>
       <KeyboardEventHandler handleEventType="keydown" handleKeys={['all']} onKeyEvent={this.handleKeys} />
       <KeyboardEventHandler handleEventType="keyup" handleKeys={['all']} onKeyEvent={this.handleKeys} />
     </Fragment>
@@ -445,6 +491,22 @@ function getNodeById(id,array)
       return true
     })
   return array[targetNodeIndex];
+}
+
+function isLinkExist(source,target,linkArray)
+{
+  //link to yourself is always exist
+  if(source == target)
+    return true
+  let existedLinks = linkArray.filter((link)=>{
+    if(link.source == source && link.target == target)
+      return true;
+  })
+  if(existedLinks.length == 0)
+    return false
+  else
+    return true
+  // return array[targetNodeIndex];
 }
 function calcLinkWeight(source,target,array)
 {
