@@ -23,7 +23,7 @@ class EditMenu extends Component {
         }
         catch(e)
         {
-            this.setState({selectedLink:{}})
+            // this.setState({selectedLink:{}})
         }
     }
 

@@ -24,6 +24,8 @@ const myConfig = {
     nodeHighlightBehavior: true,
     staticGraphWithDragAndDrop:true,
     directed:true,
+    height:"600",
+    width:"1000",
     node: {
         color: "lightgreen",
         size: 120,
@@ -114,15 +116,21 @@ class App extends Component {
           if(this.state.selectedNode == selectedNodeindex)  //if we delete selected node => make new selected node
               previuosNodeIndex = (selectedNodeindex-1) % this.state.data[this.state.currentFloor].nodes.length-1;
 
-          let newNodeArray = this.state.data[this.state.currentFloor].nodes.filter((node, index) => index !== selectedNodeindex);
-          let newLinkArray = this.state.data[this.state.currentFloor].links.filter((link, index) => {
-            return (link.source !== selectedNode.id && link.target !== selectedNode.id)
-          })
-
-          console.log(newLinkArray,selectedNode.id)
-          let newState = {data:[...this.state.data.slice(0,this.state.currentFloor),
-            new FloorItem(newNodeArray,newLinkArray),
-            ...this.state.data.slice(this.state.currentFloor+1),]} 
+          let newState={data:[]}
+          //Go through all floors and delete this node and all links assosiated with it
+          for(let i=0; i < this.state.data.length;i++)
+          {
+            let newNodeArray = this.state.data[i].nodes.filter((node, index) => index !== selectedNodeindex);
+            let newLinkArray = this.state.data[i].links.filter((link, index) => {
+              return (link.source !== selectedNode.id && link.target !== selectedNode.id)
+            })
+            newState.data.push(new FloorItem(newNodeArray,newLinkArray))
+          }
+         
+          // console.log(newLinkArray,selectedNode.id)
+          // let newState = {data:[...this.state.data.slice(0,this.state.currentFloor),
+          //   new FloorItem(newNodeArray,newLinkArray),
+          //   ...this.state.data.slice(this.state.currentFloor+1),]} 
           this.setState({...this.state,...newState,selectedNode:previuosNodeIndex})
       }
       //else select node  
@@ -308,9 +316,35 @@ class App extends Component {
 
     this.onFloorNew = ()=>{
       let connectionNode = this.state.data[this.state.currentFloor].nodes[this.state.selectedNode]
-      let newFloor = new FloorItem([{...connectionNode}],[])
-      let newState = {data:[...this.state.data,newFloor],plans:[...this.state.plans,""],currentFloor:this.state.currentFloor+1,selectedNode:0}
-      this.setState(newState)
+      //if floor exist then just add to existed
+      if(this.state.data[this.state.currentFloor+1] != undefined)
+      {
+        let floor = {...this.state.data[this.state.currentFloor+1]}
+
+        //if selected node exist just go to next floor without adding it
+        if(getNodeById(connectionNode.id,floor.nodes))
+        {
+          this.setState({currentFloor:this.state.currentFloor+1,selectedNode:0})
+          return
+        }
+        floor.nodes.push(connectionNode)
+      //   return [
+      //     ...array.slice(0, replacedItemIndex),
+      //     newItem,
+      //     ...array.slice(replacedItemIndex + 1)
+      // ];
+        let newFloorIndex = this.state.currentFloor+1
+        let newState = {data:[...this.state.data.slice(0,newFloorIndex),floor,...this.state.data.slice(0,newFloorIndex+1)],
+          currentFloor:this.state.currentFloor+1,selectedNode:0}
+        this.setState(newState)
+
+      }
+      else
+      {
+        let newFloor = new FloorItem([{...connectionNode}],[])
+        let newState = {data:[...this.state.data,newFloor],plans:[...this.state.plans,""],currentFloor:this.state.currentFloor+1,selectedNode:0}
+        this.setState(newState)
+      }
     }
     this.onFloorDelete = ()=>{
       if(this.state.data.length <=1)
@@ -355,8 +389,6 @@ class App extends Component {
   }
   componentDidMount()
   {
-    // console.log(this.graph.current)
-    //  let svg = select('svg[name="svg-container-graph-id"]').style("background-image","url('http://www.mkumodels.com/wp-content/uploads/ap/appealing-mansions-with-indoor-pools-for-home-design-pictures-pool-house-plans-lovely-inner-courtyard-designs-florida-o.jpg')")
   }
 
   render() { 
@@ -393,7 +425,8 @@ class App extends Component {
       justify="center"
       alignItems="center"
     >
-      <Grid item xs={9}>
+      <Grid container item xs={9}>
+        <Grid item>
           {<Graph
             ref={this.graph}
             style={{left:'100px'}}
@@ -414,6 +447,7 @@ class App extends Component {
             onZoomed={this.onZoomed}
             onNodePositionChange={this.onNodePositionChange}
         />}
+        </Grid>
       </Grid>
       <Grid item xs={3} >
           <EditMenu onChange={this.onNodeInfoChanged}
@@ -490,7 +524,10 @@ function getNodeById(id,array)
     if(node['id'] == id)
       return true
     })
-  return array[targetNodeIndex];
+  if(targetNodeIndex < 0)
+    return false
+  else
+    return array[targetNodeIndex];
 }
 
 function isLinkExist(source,target,linkArray)
