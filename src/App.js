@@ -124,6 +124,7 @@ class App extends Component {
             let newLinkArray = this.state.data[i].links.filter((link, index) => {
               return (link.source !== selectedNode.id && link.target !== selectedNode.id)
             })
+            //if(newNodeArray.length > 0)
             newState.data.push(new FloorItem(newNodeArray,newLinkArray))
           }
          
@@ -131,7 +132,8 @@ class App extends Component {
           // let newState = {data:[...this.state.data.slice(0,this.state.currentFloor),
           //   new FloorItem(newNodeArray,newLinkArray),
           //   ...this.state.data.slice(this.state.currentFloor+1),]} 
-          this.setState({...this.state,...newState,selectedNode:previuosNodeIndex})
+          console.log(newState)
+          this.setState({...newState,selectedNode:previuosNodeIndex})
       }
       //else select node  
       else
@@ -262,8 +264,31 @@ class App extends Component {
       if(nodeField == "events")
         value = value.split(',');
       
-      newNode[nodeField] = value;
+
+      // go through all floors and change all links and nodes with specific id
+      if(nodeField == "id")
+      {
       
+        let newData = []
+        for(let floor of this.state.data)
+        {
+          let newNodeArray = floor.nodes.map((node,index)=>{
+            if(node.id == nodeID)
+              node.id = value
+              return node
+          })
+          let newLinkArray = floor.links.map((link,index)=>{
+            if(link.source == nodeID) link.source = value
+            if(link.target == nodeID) link.target = value
+            return link
+          })
+          console.log(floor)
+          newData.push(new FloorItem(newNodeArray,newLinkArray))
+        }
+        this.setState({...newData})
+        return
+      }
+      newNode[nodeField] = value;
       //if you see this constructions, dont confuse. 
       //It's Immutable pattern from 
       //https://blog.cloudboost.io/react-redux-immutable-update-cheat-sheet-296bfdd1f19
@@ -328,11 +353,6 @@ class App extends Component {
           return
         }
         floor.nodes.push(connectionNode)
-      //   return [
-      //     ...array.slice(0, replacedItemIndex),
-      //     newItem,
-      //     ...array.slice(replacedItemIndex + 1)
-      // ];
         let newFloorIndex = this.state.currentFloor+1
         let newState = {data:[...this.state.data.slice(0,newFloorIndex),floor,...this.state.data.slice(0,newFloorIndex+1)],
           currentFloor:this.state.currentFloor+1,selectedNode:0}

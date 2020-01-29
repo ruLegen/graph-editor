@@ -3,10 +3,14 @@ import {TextField,Select,MenuItem, InputLabel,Typography} from "@material-ui/cor
 class EditMenu extends Component {
     constructor(props) {
         super(props)
+        this.idTextField = React.createRef();
         this.state = {
-            selectedLink:{}
+            selectedLink:{},
+            idText:"",
         }
-
+        this.onBlur=(event)=>{
+            this.props.onChange(this.props.node.id,"id",event.target.value)
+        }
         this.linkChanged = (event)=>{
             let selectedId = event.target.value
             let selectedLink = this.props.links.filter((link)=>{return link.target == selectedId})[0]
@@ -15,11 +19,13 @@ class EditMenu extends Component {
     }
     // ??
     // 
+    componentDidMount(){
+    }
     componentDidUpdate(prevProps, prevState, snapshot)
     {
         try{
             if(this.props.node.id != prevProps.node.id)
-                 this.setState({selectedLink:{}})
+                 this.setState({selectedLink:{},idText:""})
         }
         catch(e)
         {
@@ -35,12 +41,14 @@ class EditMenu extends Component {
                 <div className="edit-menu-container">
                     <Typography>NODE {node.id}</Typography>
                     <TextField
-                        value={node.id}
+                        value={this.state.idText.length > 0?this.state.idText:node.id}
+                        ref={this.idTextField}
                         label="ID"
+                        inputProps={{onBlur:this.onBlur}}
                         defaultValue=""
                         margin="normal"
                         variant="filled"
-                        onChange={(event)=>{onChange(node.id,"id",event.target.value)}}      //use callBack from props. and pass NodeID,change field and New Value
+                        onChange={(event)=>{this.setState({idText:event.target.value})}}      //use callBack from props. and pass NodeID,change field and New Value
                     />
                      <TextField
                         value={node.mac}
