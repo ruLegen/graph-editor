@@ -27,6 +27,14 @@ function makeid(length) {
       links: links 
     }
  }
+ function Plan(url,offset)
+ {
+    return {
+      url: url,
+      offset: offset || {x:0,y:0} 
+    }
+ }
+ 
 function getCanvasOffset(id)
 {
   return zoomTransform(select(id).node())
@@ -37,4 +45,4 @@ function getCanvasOffset(id)
    return {source:source,target:target,weight:weight,events:Array.isArray(events)?events:[]}
  }
  
- export {makeid,NodeItem,LinkItem,getCanvasOffset,FloorItem}
+ export {makeid,NodeItem,LinkItem,getCanvasOffset,FloorItem,Plan}

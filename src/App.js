@@ -8,7 +8,7 @@ import {Grid,AppBar, Toolbar, Typography, Fab,} from '@material-ui/core'
 import Menu from '@material-ui/core/Menu';
 import MenuItem from '@material-ui/core/MenuItem';
 import KeyboardEventHandler from 'react-keyboard-event-handler';
-import {makeid,NodeItem,LinkItem,getCanvasOffset,FloorItem} from './js/utils'
+import {makeid,NodeItem,LinkItem,getCanvasOffset,FloorItem, Plan} from './js/utils'
 
 import EditMenu from './components/EditMenu'
 
@@ -62,11 +62,14 @@ const onMouseOutLink = function(source, target) {
     console.log(`Mouse out link between ${source} and ${target}`);
 };
 
+let svg;
 
 class App extends Component {
   constructor(props) {
     super(props);
     this.graph=React.createRef();
+    this.offset={x:0,y:0}             //Plan Offset
+    this.transform={x:0,y:0,k:0}      //Graph offset
     this.state = {
       isOpen:false,
       selectedNode:0,
@@ -74,7 +77,8 @@ class App extends Component {
       menuPosition:{top:0,left:0},
       currentFloor:0,
       data:[new FloorItem([new NodeItem("test")],[])],
-      plans:[""],
+      plans:[new Plan("")],
+      isCtrlPressed:false,
       isShiftPressed:false,
       isFloorSwitched:false,
 
@@ -89,12 +93,14 @@ class App extends Component {
       event.preventDefault();
 
       var rect = event.target.getBoundingClientRect();
-      console.log(rect)
+      console.log(event)
       if(event.type== "contextmenu")
       {
         let x = event.clientX - rect.x;
         let y = event.clientY - rect.y;
-        this.setState({isOpen:true,mousePositionClick:{top:y,left:x},menuPosition:{top:event.clientY,left:event.clientX}})
+        this.setState({isOpen:true,mousePositionClick:{top:y,left:x},menuPosition:{top:event.clientY,left:event.clientX}},()=>{
+         // this.onZoomed()
+        })
       }
     };
     //delete or add new node
@@ -240,6 +246,21 @@ class App extends Component {
           else
             this.setState({isShiftPressed:true})
           break;
+        case "ctrl":
+          if(e.type == "keyup")
+          {
+            let plan = this.state.plans[this.state.currentFloor]
+            this.setState({})
+            this.setState({isCtrlPressed:false,plans:[
+              ...this.state.plans.slice(0, this.state.currentFloor),
+                 new Plan(plan.url,this.offset),
+              ...this.state.plans.slice(this.state.currentFloor + 1)
+              ]})     //TODO save here plan offset
+          }
+          else
+            if(!this.state.isCtrlPressed)
+              this.setState({isCtrlPressed:true})
+          break;
         case "up": 
                 if(e.type == "keyup")
                   this.onFloorUp();break;
@@ -333,8 +354,12 @@ class App extends Component {
           try {
             let objectFromJson = JSON.parse(readedString)
             //let newState = {data:{...objectFromJson}} 
-            this.setState(objectFromJson)
-          } catch (error) {console.log(error)}
+            this.setState(objectFromJson.state,()=>{
+              this.transform = objectFromJson.transform
+              this.offset = this.state.plans[this.state.currentFloor].offset
+              this.moveBackground(this.transform)})
+            }
+          catch (error) {console.log(error)}
       }
       fileReader.readAsText(file)
     }
@@ -356,14 +381,19 @@ class App extends Component {
         let newFloorIndex = this.state.currentFloor+1
         let newState = {data:[...this.state.data.slice(0,newFloorIndex),floor,...this.state.data.slice(0,newFloorIndex+1)],
           currentFloor:this.state.currentFloor+1,selectedNode:0}
-        this.setState(newState)
+        this.setState(newState,()=>{  
+          this.offset = this.state.plans[this.state.currentFloor].offset
+          this.moveBackground(this.transform)})
 
       }
       else
       {
         let newFloor = new FloorItem([{...connectionNode}],[])
-        let newState = {data:[...this.state.data,newFloor],plans:[...this.state.plans,""],currentFloor:this.state.currentFloor+1,selectedNode:0}
-        this.setState(newState)
+        let newState = {data:[...this.state.data,newFloor],plans:[...this.state.plans,new Plan("")],currentFloor:this.state.currentFloor+1,selectedNode:0}
+        this.setState(newState,()=>{
+          this.offset = this.state.plans[this.state.currentFloor].offset
+          this.moveBackground(this.transform)
+        })
       }
     }
     this.onFloorDelete = ()=>{
@@ -374,13 +404,19 @@ class App extends Component {
       let newFloors = this.state.data.filter((item, index) => index !== this.state.currentFloor);
       let newPlans = this.state.plans.filter((item, index) => index !== this.state.currentFloor);
       let newState = {data: newFloors,plans:newPlans,currentFloor:newFloorIndex}
-      this.setState(newState)
+      this.setState(newState,()=>{
+        this.offset = this.state.plans[this.state.currentFloor].offset
+        this.moveBackground(this.transform)
+      })
     }
     this.onFloorUp = ()=>{
       if(this.state.data.length <= 1)
         return
       let newFloor = (this.state.currentFloor+1)%this.state.data.length
-      this.setState({currentFloor:newFloor,selectedNode:0},()=>{console.log(this.state)})
+      this.setState({currentFloor:newFloor,selectedNode:0},()=>{
+        this.offset = this.state.plans[this.state.currentFloor].offset
+        this.moveBackground(this.transform)
+      })
     }
     this.onFloorDown = ()=>{
       if(this.state.data.length <= 1)
@@ -388,27 +424,54 @@ class App extends Component {
       let newFloor = this.state.currentFloor-1
       if(newFloor < 0)
         newFloor = this.state.data.length-1
-      this.setState({currentFloor:newFloor,selectedNode:0},()=>{console.log(this.state)})
+      this.setState({currentFloor:newFloor,selectedNode:0},()=>{
+          this.offset = this.state.plans[this.state.currentFloor].offset
+          this.moveBackground(this.transform)
+        })
     }
     this.onZoomed =(transform)=>{
-      console.log({...transform})
-      let svg = select('svg[name="svg-container-graph-id"]')
-      svg.style("background-position",`${transform.x}px ${transform.y}px`)
+      this.transform = transform;
+      this.moveBackground(transform)
+    }
+    this.moveBackground = (transform)=>{
+      svg.style("background-position",`${transform.x+ this.offset.x*transform.k}px ${transform.y+ this.offset.y*transform.k}px`)
       svg.style("background-size",`${transform.k*100}%`)
+
     }
     this.onPlanChanged=(url)=>{
-      console.log(url)
+      let plan = this.state.plans[this.state.currentFloor]
       this.setState({plans:[
         ...this.state.plans.slice(0, this.state.currentFloor),
-        url,
+        new Plan(url,plan.offset),
         ...this.state.plans.slice(this.state.currentFloor + 1)
         ]
-      })
-        
+      },()=>{     //callback
+          this.offset = this.state.plans[this.state.currentFloor].offset
+          this.moveBackground(this.transform)
+        })
     }
+  }
+  componentDidUpdate(){
+    //this.offset = this.state.plans[this.state.currentFloor].offset
+    console.log(this.offset,"updated")
   }
   componentDidMount()
   {
+    svg = select('svg[name="svg-container-graph-id"]')
+
+    window.onmousedown =(event)=>{console.log(event)}
+    window.onmousemove =(event)=>{
+        if(this.state.isCtrlPressed)
+        {
+          let newOffset = {
+            x: this.offset.x + event.movementX,
+            y: this.offset.y + event.movementY,
+          }
+          this.offset = newOffset
+          this.moveBackground(this.transform)
+          //this.setState({offset:newOffset})
+        }
+    }
   }
 
   render() { 
@@ -453,7 +516,7 @@ class App extends Component {
             id="graph-id" // id is mandatory, if no id is defined rd3g will throw an error
             data={this.state.data[this.state.currentFloor]}
             config={myConfig}
-            bgImage={`url('${this.state.plans[this.state.currentFloor]}')`}
+            bgImage={`url('${this.state.plans[this.state.currentFloor].url}')`}
             //this binded to Node class
             onRightClickNode={(event,nodeId)=>{event.persist();this.onRightClickNode(event,nodeId)}}
             onDoubleClickNode={this.onNodeClick}
@@ -490,7 +553,11 @@ class App extends Component {
             </Button>
             </label>
             <Button style={{marginTop:"3%"}} variant="contained" color="primary" onClick={()=>{
-              save(JSON.stringify(this.state), 'plan.'+Date.now().toString()+".json")
+              let saveData = {
+                transform:this.transform,
+                state:this.state
+              }
+              save(JSON.stringify(saveData), 'plan.'+Date.now().toString()+".json")
             }}>Save plan</Button>
             <Button style={{marginTop:"3%"}} variant="contained" color="primary"
               onClick={()=>{
