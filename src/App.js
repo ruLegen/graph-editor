@@ -11,32 +11,19 @@ import KeyboardEventHandler from 'react-keyboard-event-handler';
 import {makeid,NodeItem,LinkItem,getCanvasOffset,FloorItem, Plan} from './js/utils'
 
 import EditMenu from './components/EditMenu'
+import SettingsMenu from './components/SettingsMenu'
 
 import ArrowUpwardIcon from '@material-ui/icons/ArrowUpward';
 import ArrowDownwardIcon from '@material-ui/icons/ArrowDownward';
+import ImageSearchIcon from '@material-ui/icons/ImageSearch';
+import SettingsIcon from '@material-ui/icons/Settings';
 import PlanDialog from './components/PlanDialog';
 
 // graph payload (with minimalist structure)
 
 // the graph configuration, you only need to pass down properties
 // that you want to override, otherwise default ones will be used
-const myConfig = {
-    nodeHighlightBehavior: true,
-    staticGraphWithDragAndDrop:true,
-    directed:true,
-    height:"600",
-    width:"1000",
-    node: {
-        color: "lightgreen",
-        size: 120,
-        highlightStrokeColor: "blue",
-    },
-    link: {
-        highlightColor: "lightblue",
-        strokeWidth:4,
-       // type:"CURVE_SMOOTH"
-    },
-};
+
 
 
 
@@ -81,7 +68,26 @@ class App extends Component {
       isCtrlPressed:false,
       isShiftPressed:false,
       isFloorSwitched:false,
-
+      isPlanOpen:false,
+      isSettingsOpen:false,
+      settings:{
+        nodeHighlightBehavior: true,
+        staticGraphWithDragAndDrop:true,
+        directed:true,
+        height:"600",
+        width:"1000",
+        node: {
+            color: "lightgreen",
+            size: 120,
+            highlightStrokeColor: "blue",
+            renderLabel:true,
+        },
+        link: {
+            highlightColor: "lightblue",
+            strokeWidth:4,
+           // type:"CURVE_SMOOTH"
+        },
+      },
     }
     //close context menu
     this.handleClose =()=>{
@@ -211,14 +217,6 @@ class App extends Component {
         let currentNode = this.state.data[this.state.currentFloor].nodes[this.state.selectedNode];
         let currentNodeId = this.state.data[this.state.currentFloor].nodes[this.state.selectedNode].id;
         let targetNode = getNodeById(nodeId,this.state.data[this.state.currentFloor].nodes);
-        
-        // let existingLinkIndex = this.state.data[this.state.currentFloor].links.findIndex((link,index)=>{
-        //   if(link.source == currentNodeId && link.target == nodeId && (currentNodeId != nodeId))
-        //   return true
-        // })
-        // if(existingLinkIndex >= 0)
-        //   return  //this link already exist
-
           //just calc vector magnitude
         let weightLink =  Math.sqrt(Math.pow(targetNode.x - currentNode.x,2)+ Math.pow(targetNode.y - currentNode.y,2))
 
@@ -444,8 +442,7 @@ class App extends Component {
         ...this.state.plans.slice(0, this.state.currentFloor),
         new Plan(url,plan.offset),
         ...this.state.plans.slice(this.state.currentFloor + 1)
-        ]
-      },()=>{     //callback
+        ]},()=>{     //callback
           this.offset = this.state.plans[this.state.currentFloor].offset
           this.moveBackground(this.transform)
         })
@@ -493,12 +490,14 @@ class App extends Component {
             <Button onClick={this.onFloorDelete} color="inherit">Delete</Button>
             <Button onClick={this.onFloorUp} color="inherit"> <ArrowUpwardIcon />Up</Button>
             <Button onClick={this.onFloorDown} color="inherit"> <ArrowDownwardIcon/>Down</Button>
-            <PlanDialog onApply={this.onPlanChanged}/>
-
+            <Button onClick={()=>{this.setState({isPlanOpen:true})}} color="inherit">Plan</Button>
           <Grid container direction="row" justify="flex-end" alignItems="center">
+         
             <Typography variant="h6">
               Floor {this.state.currentFloor}
             </Typography>
+            <Button onClick={()=>{this.setState({isSettingsOpen:true})}} color="inherit"><SettingsIcon/>Settings</Button>
+
           </Grid>
       </Toolbar>
     </AppBar>
@@ -515,7 +514,7 @@ class App extends Component {
             style={{left:'100px'}}
             id="graph-id" // id is mandatory, if no id is defined rd3g will throw an error
             data={this.state.data[this.state.currentFloor]}
-            config={myConfig}
+            config={this.state.settings}
             bgImage={`url('${this.state.plans[this.state.currentFloor].url}')`}
             //this binded to Node class
             onRightClickNode={(event,nodeId)=>{event.persist();this.onRightClickNode(event,nodeId)}}
@@ -600,6 +599,8 @@ class App extends Component {
      </Grid>
       <KeyboardEventHandler handleEventType="keydown" handleKeys={['all']} onKeyEvent={this.handleKeys} />
       <KeyboardEventHandler handleEventType="keyup" handleKeys={['all']} onKeyEvent={this.handleKeys} />
+      <PlanDialog open={this.state.isPlanOpen} onClose={()=>{this.setState({isPlanOpen:false})}} onApply={this.onPlanChanged}/>
+      <SettingsMenu context={this} open={this.state.isSettingsOpen} onClose={()=>{this.setState({isSettingsOpen:false})}} onApply={this.onSettingsChanged}/>
     </Fragment>
     );
   }

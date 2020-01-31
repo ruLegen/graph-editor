@@ -1,23 +1,19 @@
 import React,{Component, Fragment} from "react";
 import Button from '@material-ui/core/Button';
 import { Dialog,DialogTitle,TextField,DialogContent,DialogActions } from "@material-ui/core";
-
+import ImageAspectRatioIcon from '@material-ui/icons/ImageAspectRatio';
 class PlanDialog extends Component {
     constructor(props)
     {
         super(props)
         this.textBox = React.createRef();
         this.state = {
-            isOpen:false,
             url:""
-        }
-        this.onClose = ()=>{
-            this.setState({isOpen:false})
         }
         this.onApply =()=>{
             console.log(this.textBox.current)
             this.props.onApply(this.state.url)
-            this.onClose();
+            this.props.onClose();
         }
         this.onTextChanged=(event)=>{
             event.persist()
@@ -27,10 +23,10 @@ class PlanDialog extends Component {
 
 
     render(){
-        return (<Fragment>
-            <Button onClick={()=>{this.setState({isOpen:true})}} color="inherit">Plan</Button>
-            <Dialog open={this.state.isOpen} 
-                    onClose={this.onClose} 
+        return (this.props.open?
+        <Fragment>
+            <Dialog open={this.props.open} 
+                    onClose={this.props.onClose} 
                     aria-labelledby="form-dialog-title"
                     fullWidth={true}>
                 <DialogTitle id="form-dialog-title">Plan image URL</DialogTitle>
@@ -51,7 +47,7 @@ class PlanDialog extends Component {
                     </Button>
                 </DialogActions>
             </Dialog>
-        </Fragment>)
+        </Fragment>:null)
     }
 }
 
