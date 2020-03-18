@@ -282,11 +282,42 @@ class App extends Component {
 
       // ',' is delimetr "event,eve,event3" => ["event","eve","event3"]
       if(nodeField == "events")
-        value = value.split(',');
-      if(nodeField == "mac" && value == CONSTANTS.phantomString)
       {
-        value = CONSTANTS.phantomString + CONSTANTS.phantomStringDelimetr + this.state.phantomCount;
-        this.setState({phantomCount: ++this.state.phantomCount})
+        value = value.split(',');
+        let newData = []
+        for(let floor of this.state.data)
+        {
+          let links = {...floor.links}
+          let nodes = floor.nodes
+          let newNodeArray = nodes.map((node,index)=>{
+            if(node.id == nodeID)
+              node.events = value
+              return node
+          })
+          newData.push({links:links,nodes:newNodeArray})
+        }
+        this.setState({...newData,phantomCount: ++this.state.phantomCount})
+        return
+      }
+      if(nodeField == "mac")
+      {
+        if(value == CONSTANTS.phantomString)
+            value = CONSTANTS.phantomString + CONSTANTS.phantomStringDelimetr + this.state.phantomCount;
+        let newData = []
+        for(let floor of this.state.data)
+        {
+          let links = {...floor.links}
+          let nodes = floor.nodes
+          let newNodeArray = nodes.map((node,index)=>{
+            if(node.id == nodeID)
+              node.mac = value
+              return node
+          })
+          console.log(floor)
+          newData.push({links:links,nodes:newNodeArray})
+        }
+        this.setState({...newData,phantomCount: ++this.state.phantomCount})
+        return
       }
 
       // go through all floors and change all links and nodes with specific id
@@ -561,7 +592,8 @@ class App extends Component {
                 transform:this.transform,
                 state:this.state
               }
-              save(JSON.stringify(saveData), 'plan.'+Date.now().toString()+".json")
+              let data = new TextEncoder("utf-8").encode(JSON.stringify(saveData))
+              save(data, 'plan.'+Date.now().toString()+".json")
             }}>Save plan</Button>
             <Button style={{marginTop:"3%"}} variant="contained" color="primary"
               onClick={()=>{
@@ -595,7 +627,9 @@ class App extends Component {
                   })
                   resultArray.push({node:node,edges:edges})
                 })
-                save(JSON.stringify(resultArray), 'graph.'+Date.now().toString()+".json")
+                let exportGraph = new TextEncoder("utf-8").encode(JSON.stringify(resultArray))
+
+                save(exportGraph, 'graph.'+Date.now().toString()+".json")
                 console.log(resultArray)
               }}
             >Export plan</Button>
