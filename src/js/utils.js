@@ -1,5 +1,10 @@
 import {select} from "d3-selection"
 import {zoomTransform} from "d3-zoom"
+let CONSTANTS = {
+  defaultMac:"AA:BB:CC:DD:EE:FF",
+  phantomString:"PHANTOM",
+  phantomStringDelimetr:"#"
+}
 function makeid(length) {
     var result           = '';
     var characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -45,4 +50,4 @@ function getCanvasOffset(id)
    return {source:source,target:target,weight:weight,events:Array.isArray(events)?events:[]}
  }
  
- export {makeid,NodeItem,LinkItem,getCanvasOffset,FloorItem,Plan}
+ export {makeid,NodeItem,LinkItem,getCanvasOffset,FloorItem,Plan,CONSTANTS}

@@ -1,70 +1,100 @@
-import React,{Component} from "react";
-import {TextField,Select,MenuItem, InputLabel,Typography} from "@material-ui/core";
+import React, { Component } from "react";
+import { TextField, Select, MenuItem, InputLabel, Typography, Checkbox,Grid } from "@material-ui/core";
+import { CONSTANTS } from "../js/utils.js";
+
 class EditMenu extends Component {
     constructor(props) {
         super(props)
         this.idTextField = React.createRef();
         this.state = {
-            selectedLink:{},
-            idText:"",
+            selectedLink: {},
+            idText: "",
+            phantomID: 0
         }
-        this.onBlur=(event)=>{
-            this.props.onChange(this.props.node.id,"id",event.target.value)
+        this.onBlur = (event) => {
+            this.props.onChange(this.props.node.id, "id", event.target.value)
         }
-        this.linkChanged = (event)=>{
+        this.onCheckboxChange = (event) => {
+            let isPhantom =  event.target.checked;
+            console.log(isPhantom)
+            // If checkbox it true then make it phantom
+            if(isPhantom)
+                this.props.onChange(this.props.node.id, "mac", CONSTANTS.phantomString)
+            // If checkbox is false then make it default
+            if(!isPhantom)
+                this.props.onChange(this.props.node.id, "mac", CONSTANTS.defaultMac)
+
+            
+        }
+        this.linkChanged = (event) => {
             let selectedId = event.target.value
-            let selectedLink = this.props.links.filter((link)=>{return link.target == selectedId})[0]
-            this.setState({selectedLink:selectedLink})
+            let selectedLink = this.props.links.filter((link) => { return link.target == selectedId })[0]
+            this.setState({ selectedLink: selectedLink })
         }
     }
     // ??
     // 
-    componentDidMount(){
+    componentDidMount() {
     }
-    componentDidUpdate(prevProps, prevState, snapshot)
-    {
-        try{
-            if(this.props.node.id != prevProps.node.id)
-                 this.setState({selectedLink:{},idText:""})
+    componentDidUpdate(prevProps, prevState, snapshot) {
+        try {
+            if (this.props.node.id != prevProps.node.id)
+                this.setState({ selectedLink: {}, idText: "" })
         }
-        catch(e)
-        {
+        catch (e) {
             // this.setState({selectedLink:{}})
         }
     }
 
-    render() { 
-        const {node,links,onChange,onLinkChange,...other} = this.props
-        if(node != null)
-        {
+    render() {
+        const { node, links, onChange, onLinkChange, ...other } = this.props
+        if (node != null) {
+            let isPhantom = node.mac.split(CONSTANTS.phantomStringDelimetr)[0] == CONSTANTS.phantomString;
+
             return (
                 <div className="edit-menu-container">
                     <Typography>NODE {node.id}</Typography>
                     <TextField
-                        value={this.state.idText.length > 0?this.state.idText:node.id}
+                        value={this.state.idText.length > 0 ? this.state.idText : node.id}
                         ref={this.idTextField}
                         label="ID"
-                        inputProps={{onBlur:this.onBlur}}
+                        inputProps={{ onBlur: this.onBlur }}
                         defaultValue=""
                         margin="normal"
                         variant="filled"
-                        onChange={(event)=>{this.setState({idText:event.target.value})}}      //use callBack from props. and pass NodeID,change field and New Value
+                        onChange={(event) => { this.setState({ idText: event.target.value }) }}      //use callBack from props. and pass NodeID,change field and New Value
                     />
-                     <TextField
-                        value={node.mac}
-                        label="MAC"
-                        defaultValue=""
-                        margin="normal"
-                        variant="filled"
-                        onChange={(event)=>{onChange(node.id,"mac",event.target.value)}}
-                    />
+                    <Grid
+                        container
+                        direction="row"
+                        alignItems="center"
+                        >
+                        <TextField
+                            value={node.mac}
+                            label="MAC"
+                            defaultValue=""
+                            margin="normal"
+                            disabled = {isPhantom}
+                            variant="filled"
+                            onChange={(event) => { onChange(node.id, "mac", event.target.value) }}
+                        />
+                        <div>
+                            <Checkbox
+                                checked={isPhantom}
+                                label="MAC"
+                                onChange={this.onCheckboxChange}
+                            />    
+                        </div>
+                        
+                    </Grid>
+
                     <TextField
                         value={node.x}
                         label="X coord"
                         defaultValue=""
                         margin="normal"
                         variant="filled"
-                        onChange={(event)=>{onChange(node.id,"x",event.target.value)}}
+                        onChange={(event) => { onChange(node.id, "x", event.target.value) }}
                     />
                     <TextField
                         value={node.y}
@@ -72,7 +102,7 @@ class EditMenu extends Component {
                         defaultValue=""
                         margin="normal"
                         variant="filled"
-                        onChange={(event)=>{onChange(node.id,"y",event.target.value)}}
+                        onChange={(event) => { onChange(node.id, "y", event.target.value) }}
                     />
                     <TextField
                         value={node.events.toString()}
@@ -80,17 +110,17 @@ class EditMenu extends Component {
                         defaultValue=""
                         margin="normal"
                         variant="filled"
-                        onChange={(event)=>{onChange(node.id,"events",event.target.value)}}
+                        onChange={(event) => { onChange(node.id, "events", event.target.value) }}
                     />
                     <div>
-                           <InputLabel id="label">Link To</InputLabel>
-                            <Select onChange={this.linkChanged} labelId="label" id="select" value={this.state.selectedLink.target}>
+                        <InputLabel id="label">Link To</InputLabel>
+                        <Select onChange={this.linkChanged} labelId="label" id="select" value={this.state.selectedLink.target}>
                             {
-                                links.map((link,index)=>{
+                                links.map((link, index) => {
                                     return (
-                                    <MenuItem value={link.target} key={index}>
+                                        <MenuItem value={link.target} key={index}>
                                             {link.target}
-                                    </MenuItem>)
+                                        </MenuItem>)
                                 })
                             }
                         </Select>
@@ -102,7 +132,7 @@ class EditMenu extends Component {
                         defaultValue=""
                         margin="normal"
                         variant="filled"
-                        onChange={(event)=>{onLinkChange(this.state.selectedLink,"link-events",event.target.value)}}
+                        onChange={(event) => { onLinkChange(this.state.selectedLink, "link-events", event.target.value) }}
                     />
                 </div>
             )
@@ -110,5 +140,5 @@ class EditMenu extends Component {
         return null;
     }
 }
- 
+
 export default EditMenu;

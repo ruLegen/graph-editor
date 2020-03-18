@@ -8,7 +8,7 @@ import {Grid,AppBar, Toolbar, Typography, Fab,} from '@material-ui/core'
 import Menu from '@material-ui/core/Menu';
 import MenuItem from '@material-ui/core/MenuItem';
 import KeyboardEventHandler from 'react-keyboard-event-handler';
-import {makeid,NodeItem,LinkItem,getCanvasOffset,FloorItem, Plan} from './js/utils'
+import {makeid,NodeItem,LinkItem,getCanvasOffset,FloorItem, Plan,CONSTANTS} from './js/utils'
 
 import EditMenu from './components/EditMenu'
 import SettingsMenu from './components/SettingsMenu'
@@ -65,6 +65,7 @@ class App extends Component {
       currentFloor:0,
       data:[new FloorItem([new NodeItem("test")],[])],
       plans:[new Plan("")],
+      phantomCount:0,
       isCtrlPressed:false,
       isShiftPressed:false,
       isFloorSwitched:false,
@@ -282,7 +283,11 @@ class App extends Component {
       // ',' is delimetr "event,eve,event3" => ["event","eve","event3"]
       if(nodeField == "events")
         value = value.split(',');
-      
+      if(nodeField == "mac" && value == CONSTANTS.phantomString)
+      {
+        value = CONSTANTS.phantomString + CONSTANTS.phantomStringDelimetr + this.state.phantomCount;
+        this.setState({phantomCount: ++this.state.phantomCount})
+      }
 
       // go through all floors and change all links and nodes with specific id
       if(nodeField == "id")
