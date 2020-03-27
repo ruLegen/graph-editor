@@ -18,6 +18,7 @@ import ArrowDownwardIcon from '@material-ui/icons/ArrowDownward';
 import ImageSearchIcon from '@material-ui/icons/ImageSearch';
 import SettingsIcon from '@material-ui/icons/Settings';
 import PlanDialog from './components/PlanDialog';
+import update from 'immutability-helper';
 
 // graph payload (with minimalist structure)
 
@@ -133,7 +134,7 @@ class App extends Component {
           //Go through all floors and delete this node and all links assosiated with it
           for(let i=0; i < this.state.data.length;i++)
           {
-            let newNodeArray = this.state.data[i].nodes.filter((node, index) => index !== selectedNodeindex);
+            let newNodeArray = this.state.data[i].nodes.filter((node, index) => node.id !== selectedNode.id);
             let newLinkArray = this.state.data[i].links.filter((link, index) => {
               return (link.source !== selectedNode.id && link.target !== selectedNode.id)
             })
@@ -405,6 +406,7 @@ class App extends Component {
       {
         let floor = {...this.state.data[this.state.currentFloor+1]}
 
+        console.log(floor)
         //if selected node exist just go to next floor without adding it
         if(getNodeById(connectionNode.id,floor.nodes))
         {
@@ -413,9 +415,11 @@ class App extends Component {
         }
         floor.nodes.push(connectionNode)
         let newFloorIndex = this.state.currentFloor+1
-        let newState = {data:[...this.state.data.slice(0,newFloorIndex),floor,...this.state.data.slice(0,newFloorIndex+1)],
-          currentFloor:this.state.currentFloor+1,selectedNode:0}
-        this.setState(newState,()=>{  
+        let newData = update(this.state.data,{[newFloorIndex]: {$set: floor}})
+        // let newState = {data:[...this.state.data.slice(0,newFloorIndex),floor,...this.state.data.slice(0,newFloorIndex+1)],
+        //   currentFloor:this.state.currentFloor+1,selectedNode:0}
+        console.log(newData)
+        this.setState({data:newData,currentFloor:newFloorIndex,selectedNode:0},()=>{  
           this.offset = this.state.plans[this.state.currentFloor].offset
           this.moveBackground(this.transform)})
 
@@ -447,6 +451,7 @@ class App extends Component {
       if(this.state.data.length <= 1)
         return
       let newFloor = (this.state.currentFloor+1)%this.state.data.length
+	  console.log(newFloor,this.state.plans[newFloor])
       this.setState({currentFloor:newFloor,selectedNode:0},()=>{
         this.offset = this.state.plans[this.state.currentFloor].offset
         this.moveBackground(this.transform)
@@ -551,7 +556,7 @@ class App extends Component {
             id="graph-id" // id is mandatory, if no id is defined rd3g will throw an error
             data={this.state.data[this.state.currentFloor]}
             config={this.state.settings}
-            bgImage={`url('${this.state.plans[this.state.currentFloor].url}')`}
+            bgImage={`url('${this.state.plans[this.state.currentFloor] || this.state.plans[this.state.currentFloor].url}')`}
             //this binded to Node class
             onRightClickNode={(event,nodeId)=>{event.persist();this.onRightClickNode(event,nodeId)}}
             onDoubleClickNode={this.onNodeClick}
@@ -572,7 +577,12 @@ class App extends Component {
                     onLinkChange={this.onLinkInfoChanged}
                     node={this.state.data[this.state.currentFloor].nodes[this.state.selectedNode]}
                     links={this.state.data[this.state.currentFloor].links.filter((link)=>{
+                      try{
                         return link.source == this.state.data[this.state.currentFloor].nodes[this.state.selectedNode].id
+                      }
+                      catch(e){
+
+                      }
                     })}
           />
           <Grid container xs={7} direction="column" >
