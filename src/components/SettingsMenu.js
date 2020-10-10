@@ -1,63 +1,86 @@
-import React,{Component, Fragment} from "react";
+import React, { Component, Fragment } from "react";
 import Button from '@material-ui/core/Button';
-import { Dialog,DialogTitle,TextField,DialogContent,DialogActions, Slider, Switch,FormGroup,FormControlLabel } from "@material-ui/core";
+import { Dialog, DialogTitle, TextField, DialogContent, DialogActions, Slider, Switch, FormGroup, FormControlLabel } from "@material-ui/core";
 import ImageAspectRatioIcon from '@material-ui/icons/ImageAspectRatio';
 //to reduce code, this class get via props Context of parent,and change his state
 class SettingsMenu extends Component {
-    constructor(props)
-    {
+    constructor(props) {
         super(props)
         this.textBox = React.createRef();
         this.state = {
         }
-        this.onNodeChanged=(key,value)=>{
-            console.log(value)
-            const {settings,...others} = this.props.context.state
-            let newSettings = {...settings}
+        this.onNodeChanged = (key, value) => {
+            const { settings, ...others } = this.props.context.state
+            let newSettings = { ...settings }
             newSettings.node[key] = value
-            this.props.context.setState({settings:newSettings})            
+            this.props.context.setState({ settings: newSettings })
         }
-        this.onNodeSize=(event)=>{
-
+        this.onAppSettingChanged = (key, value) => {
+            const { appSettings, ...others } = this.props.context.state
+            let newSettings = { ...appSettings }
+            newSettings[key] = value
+            this.props.context.setState({ appSettings: newSettings })
         }
     }
 
 
-    render(){
-        const {settings,...others} = this.props.context.state
-        return (this.props.open?
-        <Fragment>
-            <Dialog open={this.props.open} 
-                    onClose={this.props.onClose} 
-                    aria-labelledby="form-dialog-title"
-                    fullWidth={true}>
-                <DialogTitle id="form-dialog-title">Graph Settings</DialogTitle>
-                <DialogContent>
-                    <FormGroup column>
-                        <FormControlLabel
-                                label={`Render labels = ${settings.node.renderLabel}`}
-                                control={
-                                <Switch checked={settings.node.renderLabel}
-                                        onChange={(event)=>{this.onNodeChanged("renderLabel",event.target.checked)}} value="node.renderLabel" />}
-                                         />
+    render() {
+        const { appSettings, settings, ...others } = this.props.context.state
+       
+            return (this.props.open ?
+                <Fragment>
+                    <Dialog open={this.props.open}
+                        onClose={()=>{
+                                    let newData = []
+                                    for (let floor of this.props.context.state.data) {
+                                        let links = [...floor.links]
+                                        let nodes = floor.nodes
+                                        let newNodeArray = nodes.map((node, index) => {
+                                            if (node.isPhantom) {
+                                                node.mac = appSettings.defaultPhantomId
+                                            }
+                                            return node
+                                        })
+                                        newData.push({ links: links, nodes: newNodeArray })
+                                    this.setState({ data: newData})
+                                }
+                            this.props.onClose()}}
+                        aria-labelledby="form-dialog-title"
+                        fullWidth={true}>
+                        <DialogTitle id="form-dialog-title">Graph Settings</DialogTitle>
+                        <DialogContent>
+                            <FormGroup column>
+                                <FormControlLabel
+                                    label={`Render labels = ${settings.node.renderLabel}`}
+                                    control={
+                                        <Switch checked={settings.node.renderLabel}
+                                            onChange={(event) => { this.onNodeChanged("renderLabel", event.target.checked) }} value="node.renderLabel" />}
+                                />
                                 <TextField label="Node Size" value={settings.node.size}
-                                    onChange={(event)=>{
+                                    onChange={(event) => {
                                         let value = 0
-                                        if(event.target.value.length == 0)
+                                        if (event.target.value.length == 0)
                                             value = 0
                                         else
                                             value = parseInt(event.target.value);
-                                        this.onNodeChanged("size",isNaN(value)?settings.node.size:value)
+                                        this.onNodeChanged("size", isNaN(value) ? settings.node.size : value)
                                     }}
                                 />
-                    </FormGroup>
-                </DialogContent>
-                <DialogActions>
-                   
-                </DialogActions>
-            </Dialog>
-        </Fragment>:null)
-    }
-}
+                                <TextField label="Phantom ID" value={appSettings.defaultPhantomId}
+                                    onChange={(event) => {
+                                        let value = 0
+                                        value = parseInt(event.target.value);
+                                        this.onAppSettingChanged("defaultPhantomId", isNaN(value) ? appSettings.defaultPhantomMac : value)
+                                    }}
+                                />
+                            </FormGroup>
+                        </DialogContent>
+                        <DialogActions>
 
-export default SettingsMenu
+                        </DialogActions>
+                    </Dialog>
+                </Fragment> : null)
+        }
+    }
+
+    export default SettingsMenu

@@ -72,8 +72,11 @@ class App extends Component {
       isFloorSwitched:false,
       isPlanOpen:false,
       isSettingsOpen:false,
-      settings:{
-        nodeHighlightBehavior: true,
+      appSettings:{
+        defaultPhantomId: 1
+      },
+      settings:{                              // Settings for libraryreact-d3-graph
+        nodeHighlightBehavior: true, 
         staticGraphWithDragAndDrop:true,
         directed:true,
         height:"600",
@@ -284,11 +287,10 @@ class App extends Component {
       // ',' is delimetr "event,eve,event3" => ["event","eve","event3"]
       if(nodeField == "events")
       {
-        value = value.split(',');
         let newData = []
         for(let floor of this.state.data)
         {
-          let links = {...floor.links}
+          let links = [...floor.links]
           let nodes = floor.nodes
           let newNodeArray = nodes.map((node,index)=>{
             if(node.id == nodeID)
@@ -297,17 +299,17 @@ class App extends Component {
           })
           newData.push({links:links,nodes:newNodeArray})
         }
-        this.setState({...newData,phantomCount: ++this.state.phantomCount})
+        this.setState({data:newData,phantomCount: ++this.state.phantomCount})
         return
       }
       if(nodeField == "mac")
       {
-        if(value == CONSTANTS.phantomString)
-            value = CONSTANTS.phantomString + CONSTANTS.phantomStringDelimetr + this.state.phantomCount;
+        // if(value == CONSTANTS.phantomString)
+        //     value = CONSTANTS.phantomString + CONSTANTS.phantomStringDelimetr + this.state.phantomCount;
         let newData = []
         for(let floor of this.state.data)
         {
-          let links = {...floor.links}
+          let links = [...floor.links]
           let nodes = floor.nodes
           let newNodeArray = nodes.map((node,index)=>{
             if(node.id == nodeID)
@@ -317,10 +319,80 @@ class App extends Component {
           console.log(floor)
           newData.push({links:links,nodes:newNodeArray})
         }
-        this.setState({...newData,phantomCount: ++this.state.phantomCount})
+        this.setState({data:newData,phantomCount: ++this.state.phantomCount})
         return
       }
-
+      if(nodeField == "name")
+      {
+        let newData = []
+        for(let floor of this.state.data)
+        {
+          let links = [...floor.links]
+          let nodes = floor.nodes
+          let newNodeArray = nodes.map((node,index)=>{
+            if(node.id == nodeID)
+              node.name = value
+              return node
+          })
+          newData.push({links:links,nodes:newNodeArray})
+        }
+        this.setState({data:newData,phantomCount: ++this.state.phantomCount})
+        return
+      }
+      
+      if(nodeField == "isDestinct")
+      {
+        let newData = []
+        for(let floor of this.state.data)
+        {
+          let links = [...floor.links]
+          let nodes = floor.nodes
+          let newNodeArray = nodes.map((node,index)=>{
+            if(node.id == nodeID)
+              node.isDestinct = value
+              return node
+          })
+          newData.push({links:links,nodes:newNodeArray})
+        }
+        this.setState({data:newData,phantomCount: ++this.state.phantomCount})
+        return
+      }
+      if(nodeField == "isPhantom")
+      {
+        let newData = []
+        for(let floor of this.state.data)
+        {
+          let links = [...floor.links]
+          let nodes = floor.nodes
+          let newNodeArray = nodes.map((node,index)=>{
+            if(node.id == nodeID){
+              node.isPhantom = value
+              node.mac = this.state.appSettings.defaultPhantomId
+            }
+              return node
+          })
+          newData.push({links:links,nodes:newNodeArray})
+        }
+        this.setState({data:newData,phantomCount: ++this.state.phantomCount})
+        return
+      }
+      if(nodeField == "broadcast")
+      {
+        let newData = []
+        for(let floor of this.state.data)
+        {
+          let links = [...floor.links]
+          let nodes = floor.nodes
+          let newNodeArray = nodes.map((node,index)=>{
+            if(node.id == nodeID)
+              node.broadcast = value
+              return node
+          })
+          newData.push({links:links,nodes:newNodeArray})
+        }
+        this.setState({data:newData,phantomCount: ++this.state.phantomCount})
+        return
+      }
       // go through all floors and change all links and nodes with specific id
       if(nodeField == "id")
       {
@@ -341,7 +413,7 @@ class App extends Component {
           console.log(floor)
           newData.push(new FloorItem(newNodeArray,newLinkArray))
         }
-        this.setState({...newData})
+        this.setState({data:newData})
         return
       }
       newNode[nodeField] = value;
@@ -360,7 +432,7 @@ class App extends Component {
     }
     this.onLinkInfoChanged=(link,event,value)=>{
         let newLink = link
-        newLink.events = value.split(',')
+        newLink.events = value
         let index = this.state.data[this.state.currentFloor].links.findIndex((element)=>{
             return (element.source == link.source && element.target == link.target)
         })
@@ -491,7 +563,7 @@ class App extends Component {
   }
   componentDidUpdate(){
     //this.offset = this.state.plans[this.state.currentFloor].offset
-    console.log(this.offset,"updated")
+    //console.log(this.offset,"updated")
   }
   componentDidMount()
   {
@@ -513,6 +585,7 @@ class App extends Component {
   }
 
   render() { 
+    console.log(this.state.data[this.state.currentFloor].links);
   return (
     <Fragment>
 
@@ -649,7 +722,22 @@ class App extends Component {
       <KeyboardEventHandler handleEventType="keydown" handleKeys={['all']} onKeyEvent={this.handleKeys} />
       <KeyboardEventHandler handleEventType="keyup" handleKeys={['all']} onKeyEvent={this.handleKeys} />
       <PlanDialog open={this.state.isPlanOpen} onClose={()=>{this.setState({isPlanOpen:false})}} onApply={this.onPlanChanged}/>
-      <SettingsMenu context={this} open={this.state.isSettingsOpen} onClose={()=>{this.setState({isSettingsOpen:false})}} onApply={this.onSettingsChanged}/>
+      <SettingsMenu context={this} open={this.state.isSettingsOpen} onClose={()=>{
+      // Update all phantom's mac IDs. If settings 
+      let newData = []
+        for (let floor of this.state.data) {
+            let links = [...floor.links]
+            let nodes = floor.nodes
+            let newNodeArray = nodes.map((node, index) => {
+                if (node.isPhantom) {
+                    node.mac = this.state.appSettings.defaultPhantomId
+                }
+                return node
+            })
+            newData.push({ links: links, nodes: newNodeArray })
+        this.setState({ data: newData,isSettingsOpen:false})
+    }
+      }} onApply={this.onSettingsChanged}/>
     </Fragment>
     );
   }

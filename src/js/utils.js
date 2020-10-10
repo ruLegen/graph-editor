@@ -1,7 +1,9 @@
 import {select} from "d3-selection"
 import {zoomTransform} from "d3-zoom"
 let CONSTANTS = {
-  defaultMac:"AA:BB:CC:DD:EE:FF",
+  defaultMac:-1,
+  defaultName:"Name",
+  phantomBeaconId:1,
   phantomString:"PHANTOM",
   phantomStringDelimetr:"#"
 }
@@ -19,10 +21,14 @@ function makeid(length) {
  {
    return {
       id:id,
-      mac:"AA:BB:CC:DD:EE:FF",
+      name:CONSTANTS.defaultName,
+      mac:CONSTANTS.defaultMac,
+      isDestinct:true,      // whether node can be destinct or not
+      isPhantom: false,
       x:0,
       y:0,
-      events:[]
+      events:"",
+      broadcast:"",
    }
  }
  function FloorItem(nodes,links)
@@ -47,7 +53,7 @@ function getCanvasOffset(id)
 
  function LinkItem(source,target,weight,events)
  {
-   return {source:source,target:target,weight:weight,events:Array.isArray(events)?events:[]}
+   return {source:source,target:target,weight:weight,events:Array.isArray(events)?events:""}
  }
  
  export {makeid,NodeItem,LinkItem,getCanvasOffset,FloorItem,Plan,CONSTANTS}
