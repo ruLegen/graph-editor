@@ -223,9 +223,10 @@ class App extends Component {
         let currentNodeId = this.state.data[this.state.currentFloor].nodes[this.state.selectedNode].id;
         let targetNode = getNodeById(nodeId,this.state.data[this.state.currentFloor].nodes);
           //just calc vector magnitude
+        // TODO replace weightLink to steps
         let weightLink =  Math.sqrt(Math.pow(targetNode.x - currentNode.x,2)+ Math.pow(targetNode.y - currentNode.y,2))
 
-        //check here for link existense
+        // check here for link existense
         let link  = []
         // new LinkItem(currentNodeId,nodeId,weightLink),new LinkItem(nodeId,currentNodeId,weightLink)
         if(!isLinkExist(currentNodeId,nodeId,this.state.data[this.state.currentFloor].links))
@@ -704,7 +705,7 @@ class App extends Component {
                   })
                   let edges = []
                   nodeLinks.forEach((link)=>{
-                    edges.push({nodeName:link.target,
+                    edges.push({nodeId:link.target,
                                 weight:link.weight,
                                 events:link.events})
                   })

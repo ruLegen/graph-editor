@@ -31,19 +31,7 @@ class SettingsMenu extends Component {
                 <Fragment>
                     <Dialog open={this.props.open}
                         onClose={()=>{
-                                    let newData = []
-                                    for (let floor of this.props.context.state.data) {
-                                        let links = [...floor.links]
-                                        let nodes = floor.nodes
-                                        let newNodeArray = nodes.map((node, index) => {
-                                            if (node.isPhantom) {
-                                                node.mac = appSettings.defaultPhantomId
-                                            }
-                                            return node
-                                        })
-                                        newData.push({ links: links, nodes: newNodeArray })
-                                    this.setState({ data: newData})
-                                }
+                            
                             this.props.onClose()}}
                         aria-labelledby="form-dialog-title"
                         fullWidth={true}>
