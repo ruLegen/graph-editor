@@ -51,6 +51,7 @@ class EditMenu extends Component {
         if (node != null) {
             let isPhantom = node.isPhantom
             let isDestinct = node.isDestinct
+            let isRouteSpelling = node.isRouteSpelling
             return (
                 <div className="edit-menu-container">
                     <Typography>NODE {node.id}</Typography>
@@ -59,6 +60,12 @@ class EditMenu extends Component {
                             checked={isDestinct}
                             onChange={(event) => {
                                 onChange(node.id, "isDestinct", event.target.checked)
+                            }}
+                        />    </Typography>
+                        <Typography>Is RouteSpelling <Checkbox
+                            checked={isRouteSpelling}
+                            onChange={(event) => {
+                                onChange(node.id, "isRouteSpelling", event.target.checked)
                             }}
                         />    </Typography>
 

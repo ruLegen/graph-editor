@@ -358,6 +358,24 @@ class App extends Component {
         this.setState({data:newData,phantomCount: ++this.state.phantomCount})
         return
       }
+            
+      if(nodeField == "isRouteSpelling")
+      {
+        let newData = []
+        for(let floor of this.state.data)
+        {
+          let links = [...floor.links]
+          let nodes = floor.nodes
+          let newNodeArray = nodes.map((node,index)=>{
+            if(node.id == nodeID)
+              node.isRouteSpelling = value
+              return node
+          })
+          newData.push({links:links,nodes:newNodeArray})
+        }
+        this.setState({data:newData,phantomCount: ++this.state.phantomCount})
+        return
+      }
       if(nodeField == "isPhantom")
       {
         let newData = []

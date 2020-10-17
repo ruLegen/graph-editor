@@ -25,6 +25,7 @@ function makeid(length) {
       mac:CONSTANTS.defaultMac,
       isDestinct:true,      // whether node can be destinct or not
       isPhantom: false,
+      isRouteSpelling: true,
       x:0,
       y:0,
       events:"",
