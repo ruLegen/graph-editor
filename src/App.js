@@ -478,8 +478,9 @@ class App extends Component {
       fileReader.onloadend = (e)=>{
           let readedString = fileReader.result
           try {
-            let objectFromJson = JSON.parse(readedString)
-            //let newState = {data:{...objectFromJson}} 
+            //let objectFromJson = JSON.parse(readedString)
+            //let newState = {data:{...objectFromJson}}
+            let objectFromJson = HandlePreviousVersion(readedString)
             this.setState(objectFromJson.state,()=>{
               this.transform = objectFromJson.transform
               this.offset = this.state.plans[this.state.currentFloor].offset
@@ -761,7 +762,23 @@ class App extends Component {
     );
   }
 }
-
+function HandlePreviousVersion(objectString){
+  let StateFromFile = JSON.parse(objectString)
+  let floorData = StateFromFile.state.data
+  let processedFloorData = floorData.map((currentFloor)=>{
+        let newNodes = currentFloor.nodes.map((node)=>{
+        let newNode = NodeItem(0);
+        for(let key in node){
+          newNode[key] = node[key]
+        }
+        return newNode;
+    })
+    currentFloor.nodes = newNodes
+    return currentFloor;
+  });
+  StateFromFile.state.data = processedFloorData;
+  return StateFromFile
+}
 function getNodeById(id,array)
 {
   let targetNodeIndex = array.findIndex((node,index)=>{
