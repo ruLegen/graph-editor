@@ -29,25 +29,20 @@ import update from 'immutability-helper';
 
 
 const onMouseOverNode = function(nodeId) {
-    console.log(`Mouse over node ${nodeId}`);
 };
 
 const onMouseOutNode = function(nodeId) {
-    console.log(`Mouse out node ${nodeId}`);
 };
 
 
 
 const onRightClickLink = function(event, source, target) {
-    console.log(`Right clicked link between ${source} and ${target}`);
 };
 
 const onMouseOverLink = function(source, target) {
-    console.log(`Mouse over in link between ${source} and ${target}`);
 };
 
 const onMouseOutLink = function(source, target) {
-    console.log(`Mouse out link between ${source} and ${target}`);
 };
 
 let svg;
@@ -605,7 +600,6 @@ class App extends Component {
   }
 
   render() { 
-    console.log(this.state.data[this.state.currentFloor].links);
   return (
     <Fragment>
 
