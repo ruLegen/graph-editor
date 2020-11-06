@@ -56,9 +56,9 @@ class SettingsMenu extends Component {
                                 />
                                 <TextField label="Phantom ID" value={appSettings.defaultPhantomId}
                                     onChange={(event) => {
-                                        let value = 0
-                                        value = parseInt(event.target.value);
-                                        this.onAppSettingChanged("defaultPhantomId", isNaN(value) ? appSettings.defaultPhantomMac : value)
+                                        let value =event.target.value
+                                        this.onAppSettingChanged("defaultPhantomId", value)
+//                                        this.onAppSettingChanged("defaultPhantomId", isNaN(value) ? appSettings.defaultPhantomMac : value)
                                     }}
                                 />
                             </FormGroup>

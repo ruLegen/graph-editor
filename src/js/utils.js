@@ -1,7 +1,7 @@
 import {select} from "d3-selection"
 import {zoomTransform} from "d3-zoom"
 let CONSTANTS = {
-  defaultMac:-1,
+  defaultMac:"MAC",
   defaultName:"Name",
   phantomBeaconId:1,
   phantomString:"PHANTOM",
