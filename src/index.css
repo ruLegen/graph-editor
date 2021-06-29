@@ -16,3 +16,8 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
     monospace;
 }
+
+svg[name="svg-container-graph-id"] {
+  width: 75vw !important;
+  height: 90vh !important;
+}
