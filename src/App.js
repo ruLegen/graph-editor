@@ -12,6 +12,8 @@ import {makeid,NodeItem,LinkItem,getCanvasOffset,FloorItem, Plan,CONSTANTS} from
 
 import EditMenu from './components/EditMenu'
 import SettingsMenu from './components/SettingsMenu'
+import UploadMenu from './components/UploadMenu'
+
 
 import ArrowUpwardIcon from '@material-ui/icons/ArrowUpward';
 import ArrowDownwardIcon from '@material-ui/icons/ArrowDownward';
@@ -67,8 +69,11 @@ class App extends Component {
       isFloorSwitched:false,
       isPlanOpen:false,
       isSettingsOpen:false,
+      isUpload:false,
       appSettings:{
-        defaultPhantomId: 1
+        defaultPhantomId: 1,
+        serverAddress:"",
+        locationName: ""
       },
       settings:{                              // Settings for libraryreact-d3-graph
         nodeHighlightBehavior: true, 
@@ -575,6 +580,40 @@ class App extends Component {
           this.moveBackground(this.transform)
         })
     }
+
+    this.getGraphForExport= ()=>{
+      let data = this.state.data.flat()
+      let allNodes =[]
+      let allLinks =[]
+
+      //it needs for delete duplicates
+      let tmpNodeIdArray = new Set()
+      //separate all nodes and links to different arrays 
+      data.forEach((element)=>{
+          element.nodes.forEach((node)=>{
+            //if set doesn't contain this node then add
+            if(!tmpNodeIdArray.has(node.id))
+              allNodes.push(node)
+            tmpNodeIdArray.add(node.id)
+          })
+          element.links.forEach((link)=>{allLinks.push(link)})
+      })
+      let resultArray = []
+      allNodes.forEach((node)=>{
+        //get all links where node is source
+        let nodeLinks = allLinks.filter((link)=>{
+          return link.source == node.id
+        })
+        let edges = []
+        nodeLinks.forEach((link)=>{
+          edges.push({nodeId:link.target,
+                      weight:link.weight,
+                      events:link.events})
+        })
+        resultArray.push({node:node,edges:edges})
+      })
+      return resultArray;
+    }
   }
   componentDidUpdate(){
     //this.offset = this.state.plans[this.state.currentFloor].offset
@@ -621,9 +660,8 @@ class App extends Component {
             <Button onClick={()=>{this.setState({isPlanOpen:true})}} color="inherit">Plan</Button>
           <Grid container direction="row" justify="flex-end" alignItems="center">
          
-            <Typography variant="h6">
-              Floor {this.state.currentFloor}
-            </Typography>
+            <Typography variant="h6"> Floor {this.state.currentFloor} </Typography>
+            <Button onClick={()=>{this.setState({isUpload:true})}} color="inherit"><SettingsIcon/>Upload</Button>
             <Button onClick={()=>{this.setState({isSettingsOpen:true})}} color="inherit"><SettingsIcon/>Settings</Button>
 
           </Grid>
@@ -694,36 +732,7 @@ class App extends Component {
             }}>Save plan</Button>
             <Button style={{marginTop:"3%"}} variant="contained" color="primary"
               onClick={()=>{
-                let data = this.state.data.flat()
-                let allNodes =[]
-                let allLinks =[]
-
-                //it needs for delete duplicates
-                let tmpNodeIdArray = new Set()
-                //separate all nodes and links to different arrays 
-                data.forEach((element)=>{
-                    element.nodes.forEach((node)=>{
-                      //if set doesn't contain this node then add
-                      if(!tmpNodeIdArray.has(node.id))
-                        allNodes.push(node)
-                      tmpNodeIdArray.add(node.id)
-                    })
-                    element.links.forEach((link)=>{allLinks.push(link)})
-                })
-                let resultArray = []
-                allNodes.forEach((node)=>{
-                  //get all links where node is source
-                  let nodeLinks = allLinks.filter((link)=>{
-                    return link.source == node.id
-                  })
-                  let edges = []
-                  nodeLinks.forEach((link)=>{
-                    edges.push({nodeId:link.target,
-                                weight:link.weight,
-                                events:link.events})
-                  })
-                  resultArray.push({node:node,edges:edges})
-                })
+                var resultArray = this.getGraphForExport();
                 let exportGraph = new TextEncoder("utf-8").encode(JSON.stringify(resultArray))
 
                 save(exportGraph, 'graph.'+Date.now().toString()+".json")
@@ -750,12 +759,27 @@ class App extends Component {
             })
             newData.push({ links: links, nodes: newNodeArray })
         this.setState({ data: newData,isSettingsOpen:false})
-    }
+      }
       }} onApply={this.onSettingsChanged}/>
+
+
+      <UploadMenu context={this} 
+          open={this.state.isUpload} 
+          onClose={()=>{
+            this.setState({ isUpload:false })
+          }}
+          onUploadClicked={(pass)=>{
+            var locationName = this.state.appSettings.locationName;
+            var password = pass;
+            var serverLocation = this.state.appSettings.serverAddress;
+
+            uploadToServer(serverLocation,locationName,this.getGraphForExport(),pass)
+          }} />
     </Fragment>
     );
   }
 }
+
 function HandlePreviousVersion(objectString){
   let StateFromFile = JSON.parse(objectString)
   let floorData = StateFromFile.state.data
@@ -806,5 +830,56 @@ function calcLinkWeight(source,target,array)
   let targetNode = getNodeById(target,array);
   let weightLink = Math.sqrt(Math.pow(targetNode.x - sourceNode.x,2)+ Math.pow(targetNode.y - sourceNode.y,2))
   return  parseInt(weightLink)
+}
+
+function uploadToServer(destination,name,graph,password)
+{
+  var data = new FormData();
+  const payload = {
+    name: name,
+    graph: graph,
+    password:password,
+  };
+  data.append("name", name);
+  data.append("graph", JSON.stringify(graph));
+  data.append("password", password);
+
+  var result = fetch(destination, {
+    method: 'POST',
+    body: data
+  }).then((r)=>{
+    if(!r.ok)
+      throw "awdawd"
+      console.log(r)
+    alert("all ok")
+  }).catch((e)=>{
+    console.log(e)
+    alert("Error")
+  })
+
+  /*
+  var data = new FormData();
+  const payload = {
+    name: name,
+    graph: graph,
+    password:password,
+  };
+  data.append("data", JSON.stringify(payload));
+  var url = new URL(destination)
+  Object.keys(payload).forEach(key => url.searchParams.append(key, payload[key]))
+
+  var result = fetch(url, {
+    method: 'GET',
+  }).then((r)=>{
+    console.log(r.json())
+    alert("all ok")
+  }).catch((e)=>{
+    console.log(e)
+    alert("Error")
+  })
+
+
+  */
+  
 }
 export default App;
